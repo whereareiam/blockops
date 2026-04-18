@@ -1,0 +1,61 @@
+name: Publish Distribution
+description: Resolve release metadata and publish external distributions such as Modrinth
+
+inputs:
+  github-token:
+    description: GitHub token used to resolve releases and download assets
+    required: true
+  modrinth-token:
+    description: Modrinth token used for publishing versions
+    required: false
+    default: ""
+  release-tag:
+    description: Release tag to publish, for example 2.0.0-RC6
+    required: true
+  manifest-path:
+    description: Path to the distribution manifest in the consumer repository
+    required: false
+    default: .github/release-distribution.yml
+  targets:
+    description: Optional comma-separated provider:variant selectors
+    required: false
+    default: ""
+  dry-run:
+    description: When true, resolve and validate but do not publish
+    required: false
+    default: "false"
+  override-yaml:
+    description: Optional YAML merge patch applied to resolved publish data
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install blockops publisher
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install "$GITHUB_ACTION_PATH/../.."
+
+    - name: Publish distributions
+      shell: bash
+      env:
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_MODRINTH_TOKEN: ${{ inputs.modrinth-token }}
+        INPUT_OVERRIDE_YAML: ${{ inputs.override-yaml }}
+      run: |
+        override_file="$(mktemp)"
+        printf '%s' "$INPUT_OVERRIDE_YAML" > "$override_file"
+
+        blockops-publish-distribution \
+          --release-tag "${{ inputs.release-tag }}" \
+          --manifest-path "${{ inputs.manifest-path }}" \
+          --targets "${{ inputs.targets }}" \
+          --dry-run "${{ inputs.dry-run }}" \
+          --override-yaml-file "$override_file"
