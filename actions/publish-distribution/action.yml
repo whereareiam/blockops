@@ -17,7 +17,7 @@ inputs:
     required: false
     default: .github/release-distribution.yml
   targets:
-    description: Optional comma-separated provider:variant selectors
+    description: Optional comma-separated publication names to publish
     required: false
     default: ""
   dry-run:

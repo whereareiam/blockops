@@ -23,24 +23,25 @@ class ModrinthPublisher:
             self.session.headers["Authorization"] = token
 
     def publish(self, release: ReleaseMetadata, target: PublishTarget, dry_run: bool) -> str:
+        project_id = self._get_project_id(target)
         payload = self._build_payload(release, target)
-        existing_versions = self._get_project_versions(target.project_id)
+        existing_versions = self._get_project_versions(project_id)
         status = self._classify_existing(payload, target, existing_versions)
         if status == "skip":
-            return f"Skipped existing Modrinth target {target.provider}:{target.variant}"
+            return f"Skipped existing Modrinth publication {target.publication}"
         if status == "conflict":
             raise ModrinthPublishError(
-                f"Conflicting Modrinth version already exists for {target.provider}:{target.variant} "
-                f"({target.artifact_name}, {release.version_number})"
+                f"Conflicting Modrinth version already exists for {target.publication} "
+                f"({target.artifact.artifact_name}, {release.version_number})"
             )
         if dry_run:
-            return f"Dry run validated Modrinth target {target.provider}:{target.variant}"
+            return f"Dry run validated Modrinth publication {target.publication}"
 
         if not self.token:
             raise ModrinthPublishError("Modrinth token is required for non-dry-run publishing")
 
-        self._create_version(payload, target.artifact_path)
-        return f"Published Modrinth target {target.provider}:{target.variant}"
+        self._create_version(payload, target.artifact.artifact_path)
+        return f"Published Modrinth publication {target.publication}"
 
     def _get_project_versions(self, project_id: str) -> list[dict[str, Any]]:
         response = self.session.get(f"{self.api_base}/project/{project_id}/version", timeout=30)
@@ -58,7 +59,7 @@ class ModrinthPublisher:
         target: PublishTarget,
         existing_versions: list[dict[str, Any]],
     ) -> str:
-        expected_file = target.artifact_name
+        expected_file = target.artifact.artifact_name
         expected_loaders = sorted(payload["loaders"])
         expected_games = sorted(payload["game_versions"])
 
@@ -87,20 +88,34 @@ class ModrinthPublisher:
 
         return "publish"
 
+    def _get_project_id(self, target: PublishTarget) -> str:
+        project_id = target.provider_config.get("project_id")
+        if not isinstance(project_id, str) or not project_id:
+            raise ModrinthPublishError(
+                f"Modrinth publication {target.publication} must define project_id"
+            )
+        return project_id
+
     def _build_payload(self, release: ReleaseMetadata, target: PublishTarget) -> dict[str, Any]:
+        project_id = self._get_project_id(target)
+        if not target.artifact.loaders:
+            raise ModrinthPublishError(
+                f"Artifact {target.artifact.name} must define loaders for Modrinth publishing"
+            )
+
         return {
             "name": release.title,
             "version_number": release.version_number,
             "changelog": release.changelog,
             "dependencies": [],
-            "game_versions": target.game_versions,
+            "game_versions": target.artifact.game_versions,
             "version_type": release.version_type,
-            "loaders": target.loader_values,
+            "loaders": target.artifact.loaders,
             "featured": False,
             "status": "listed",
-            "project_id": target.project_id,
-            "file_parts": [target.artifact_name],
-            "primary_file": target.artifact_name,
+            "project_id": project_id,
+            "file_parts": [target.artifact.artifact_name],
+            "primary_file": target.artifact.artifact_name,
         }
 
     def _create_version(self, payload: dict[str, Any], artifact_path: Path) -> None:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -16,14 +17,22 @@ class ReleaseMetadata:
 
 
 @dataclass(frozen=True)
-class PublishTarget:
-    provider: str
-    variant: str
+class PublishArtifact:
+    name: str
+    file_template: str
     artifact_name: str
     artifact_path: Path
     game_versions: list[str]
-    loader_values: list[str]
-    project_id: str
+    loaders: list[str]
+    platform: str | None
+
+
+@dataclass(frozen=True)
+class PublishTarget:
+    provider: str
+    publication: str
+    artifact: PublishArtifact
+    provider_config: dict[str, Any]
 
 
 @dataclass(frozen=True)

@@ -51,31 +51,50 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
 
 
 def validate_manifest(manifest: dict[str, Any]) -> None:
-    if manifest.get("schema_version") != 1:
-        raise ConfigError("schema_version must be 1")
+    artifacts = manifest.get("artifacts")
+    publications = manifest.get("publications")
 
-    providers = manifest.get("providers")
-    variants = manifest.get("variants")
+    if not isinstance(artifacts, dict) or not artifacts:
+        raise ConfigError("artifacts must be a non-empty mapping")
 
-    if not isinstance(providers, dict) or not providers:
-        raise ConfigError("providers must be a non-empty mapping")
+    if not isinstance(publications, dict) or not publications:
+        raise ConfigError("publications must be a non-empty mapping")
 
-    if not isinstance(variants, dict) or not variants:
-        raise ConfigError("variants must be a non-empty mapping")
+    for artifact_name, artifact in artifacts.items():
+        if not isinstance(artifact, dict):
+            raise ConfigError(f"Artifact {artifact_name} must be a mapping")
 
-    for variant_name, variant in variants.items():
-        if not isinstance(variant, dict):
-            raise ConfigError(f"Variant {variant_name} must be a mapping")
+        file_template = artifact.get("file")
+        game_versions = artifact.get("game_versions")
+        loaders = artifact.get("loaders", [])
+        platform = artifact.get("platform")
 
-        artifact = variant.get("artifact")
-        game_versions = variant.get("game_versions")
-        provider_map = variant.get("providers")
-
-        if not isinstance(artifact, str) or not artifact:
-            raise ConfigError(f"Variant {variant_name} must define artifact")
+        if not isinstance(file_template, str) or not file_template:
+            raise ConfigError(f"Artifact {artifact_name} must define file")
 
         if not isinstance(game_versions, list) or not all(isinstance(item, str) for item in game_versions):
-            raise ConfigError(f"Variant {variant_name} must define game_versions as a list of strings")
+            raise ConfigError(f"Artifact {artifact_name} must define game_versions as a list of strings")
 
-        if not isinstance(provider_map, dict) or not provider_map:
-            raise ConfigError(f"Variant {variant_name} must define providers")
+        if not isinstance(loaders, list) or not all(isinstance(item, str) for item in loaders):
+            raise ConfigError(f"Artifact {artifact_name} loaders must be a list of strings")
+
+        if platform is not None and not isinstance(platform, str):
+            raise ConfigError(f"Artifact {artifact_name} platform must be a string when defined")
+
+    for publication_name, publication in publications.items():
+        if not isinstance(publication, dict):
+            raise ConfigError(f"Publication {publication_name} must be a mapping")
+
+        provider = publication.get("provider")
+        artifact_name = publication.get("artifact")
+
+        if not isinstance(provider, str) or not provider:
+            raise ConfigError(f"Publication {publication_name} must define provider")
+
+        if not isinstance(artifact_name, str) or not artifact_name:
+            raise ConfigError(f"Publication {publication_name} must define artifact")
+
+        if artifact_name not in artifacts:
+            raise ConfigError(
+                f"Publication {publication_name} references unknown artifact {artifact_name}"
+            )

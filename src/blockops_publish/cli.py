@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 import tempfile
@@ -11,7 +10,7 @@ from typing import Any
 from blockops_publish.config import ConfigError, deep_merge, load_override_file, load_yaml_file, validate_manifest
 from blockops_publish.github_api import GitHubClient, GitHubRelease
 from blockops_publish.metadata import classify_version, derive_release_title, derive_version_number, trim_release_body
-from blockops_publish.models import PublishPlan, PublishTarget, ReleaseMetadata
+from blockops_publish.models import PublishArtifact, PublishPlan, PublishTarget, ReleaseMetadata
 from blockops_publish.providers.modrinth import ModrinthPublisher
 
 
@@ -71,8 +70,7 @@ def main(argv: list[str] | None = None) -> int:
 
         for target in plan.targets:
             summary_lines.append(
-                f"- `{target.provider}:{target.variant}` -> `{target.artifact_name}` "
-                f"(project `{target.project_id}`)"
+                f"- `{target.publication}` ({target.provider}) -> `{target.artifact.artifact_name}`"
             )
 
         provider_clients: dict[str, Any] = {}
@@ -114,24 +112,23 @@ def build_publish_plan(
             "version_type": classify_version(release.tag_name),
             "html_url": release.html_url,
         },
-        "providers": manifest["providers"],
-        "variants": manifest["variants"],
     }
-    resolved = deep_merge(release_data, override)
+    resolved = deep_merge(manifest, release_data)
+    resolved = deep_merge(resolved, override)
 
     assets_by_name = {asset.name: asset for asset in release.assets}
-    selected_targets = parse_targets_expression(targets_expression, manifest)
+    selected_targets = parse_targets_expression(targets_expression, resolved)
     release_meta = ReleaseMetadata(**resolved["release"])
     publish_targets: list[PublishTarget] = []
 
-    for provider_name, variant_name in selected_targets:
-        variant_config = resolved["variants"][variant_name]
-        provider_config = variant_config["providers"].get(provider_name)
-        if not isinstance(provider_config, dict):
-            raise ConfigError(f"Variant {variant_name} does not define provider {provider_name}")
+    for publication_name in selected_targets:
+        publication_config = resolved["publications"][publication_name]
+        provider_name = publication_config["provider"]
+        artifact_key = publication_config["artifact"]
+        artifact_config = resolved["artifacts"][artifact_key]
 
         artifact_name = resolve_artifact_name(
-            template=variant_config["artifact"],
+            template=artifact_config["file"],
             tag_name=release_meta.tag_name,
             version_number=release_meta.version_number,
         )
@@ -141,51 +138,46 @@ def build_publish_plan(
             raise ConfigError(f"Release asset {artifact_name} not found. Available assets: {available_assets}")
 
         artifact_path = github.download_asset(asset, asset_dir / artifact_name)
-        project_id = str(provider_config.get("project_id") or resolved["providers"][provider_name]["project_id"])
-        loaders = provider_config.get("loaders")
-        if not isinstance(loaders, list) or not all(isinstance(item, str) for item in loaders):
-            raise ConfigError(f"Variant {variant_name} must define {provider_name} loaders")
-
-        game_versions = variant_config["game_versions"]
+        artifact = PublishArtifact(
+            name=artifact_key,
+            file_template=artifact_config["file"],
+            artifact_name=artifact_name,
+            artifact_path=artifact_path,
+            game_versions=artifact_config["game_versions"],
+            loaders=artifact_config.get("loaders", []),
+            platform=artifact_config.get("platform"),
+        )
+        provider_config = {
+            key: value
+            for key, value in publication_config.items()
+            if key not in {"provider", "artifact"}
+        }
         publish_targets.append(
             PublishTarget(
                 provider=provider_name,
-                variant=variant_name,
-                artifact_name=artifact_name,
-                artifact_path=artifact_path,
-                game_versions=game_versions,
-                loader_values=loaders,
-                project_id=project_id,
+                publication=publication_name,
+                artifact=artifact,
+                provider_config=provider_config,
             )
         )
 
     return PublishPlan(release=release_meta, targets=publish_targets)
 
 
-def parse_targets_expression(targets_expression: str, manifest: dict[str, Any]) -> list[tuple[str, str]]:
+def parse_targets_expression(targets_expression: str, manifest: dict[str, Any]) -> list[str]:
     if not targets_expression.strip():
-        resolved: list[tuple[str, str]] = []
-        for variant_name, variant in manifest["variants"].items():
-            for provider_name in variant["providers"]:
-                resolved.append((provider_name, variant_name))
-        return resolved
+        return list(manifest["publications"].keys())
 
-    targets: list[tuple[str, str]] = []
-    for raw_target in targets_expression.split(","):
-        target = raw_target.strip()
-        if not target:
+    targets: list[str] = []
+    for raw_selector in targets_expression.split(","):
+        selector = raw_selector.strip()
+        if not selector:
             continue
 
-        if ":" not in target:
-            raise ConfigError(f"Target selector must use provider:variant format: {target}")
+        if selector not in manifest["publications"]:
+            raise ConfigError(f"Unknown publication in target selector: {selector}")
 
-        provider_name, variant_name = [part.strip() for part in target.split(":", 1)]
-        if variant_name not in manifest["variants"]:
-            raise ConfigError(f"Unknown variant in target selector: {target}")
-        if provider_name not in manifest["variants"][variant_name]["providers"]:
-            raise ConfigError(f"Unknown provider in target selector: {target}")
-
-        targets.append((provider_name, variant_name))
+        targets.append(selector)
 
     if not targets:
         raise ConfigError("No valid publish targets were selected")

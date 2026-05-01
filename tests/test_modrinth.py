@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import responses
 
-from blockops_publish.models import PublishTarget, ReleaseMetadata
+from blockops_publish.models import PublishArtifact, PublishTarget, ReleaseMetadata
 from blockops_publish.providers.modrinth import ModrinthPublishError, ModrinthPublisher
 
 
@@ -24,12 +24,17 @@ def build_target(tmp_path: Path) -> PublishTarget:
     artifact_path.write_bytes(b"jar-data")
     return PublishTarget(
         provider="modrinth",
-        variant="paper",
-        artifact_name=artifact_path.name,
-        artifact_path=artifact_path,
-        game_versions=["1.20.6", "1.21"],
-        loader_values=["paper", "purpur", "folia"],
-        project_id="aeIrNw73",
+        publication="paper-modrinth",
+        artifact=PublishArtifact(
+            name="paper",
+            file_template="Socialismus-PAPER-{version}.jar",
+            artifact_name=artifact_path.name,
+            artifact_path=artifact_path,
+            game_versions=["1.20.6", "1.21"],
+            loaders=["paper", "purpur", "folia"],
+            platform="paper",
+        ),
+        provider_config={"project_id": "aeIrNw73"},
     )
 
 
@@ -105,7 +110,7 @@ def test_publish_creates_new_version(tmp_path: Path) -> None:
 
     result = publisher.publish(release, target, dry_run=False)
 
-    assert "Published Modrinth target" in result
+    assert "Published Modrinth publication" in result
 
 
 @responses.activate
@@ -124,3 +129,18 @@ def test_publish_dry_run_skips_api_mutation(tmp_path: Path) -> None:
 
     assert "Dry run validated" in result
     assert len(responses.calls) == 1
+
+
+def test_publish_fails_when_project_id_missing(tmp_path: Path) -> None:
+    target = build_target(tmp_path)
+    release = build_release()
+    publisher = ModrinthPublisher("token")
+    broken_target = PublishTarget(
+        provider=target.provider,
+        publication=target.publication,
+        artifact=target.artifact,
+        provider_config={},
+    )
+
+    with pytest.raises(ModrinthPublishError, match="project_id"):
+        publisher.publish(release, broken_target, dry_run=True)
