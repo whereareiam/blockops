@@ -2,9 +2,6 @@ name: Publish Distribution
 description: Resolve release metadata and publish external distributions such as Modrinth
 
 inputs:
-  github-token:
-    description: GitHub token used to resolve releases and download assets
-    required: true
   modrinth-token:
     description: Modrinth token used for publishing versions
     required: false
@@ -12,10 +9,25 @@ inputs:
   release-tag:
     description: Release tag to publish, for example 2.0.0-RC6
     required: true
+  release-name:
+    description: Release name from GitHub
+    required: false
+    default: ""
+  release-body:
+    description: Release body from GitHub
+    required: false
+    default: ""
+  release-url:
+    description: Release URL from GitHub
+    required: false
+    default: ""
   manifest-path:
     description: Path to the distribution manifest in the consumer repository
     required: false
     default: .github/release-distribution.yml
+  artifact-directory:
+    description: Directory containing build artifacts to publish
+    required: true
   targets:
     description: Optional comma-separated publication names to publish
     required: false
@@ -41,12 +53,11 @@ runs:
       shell: bash
       run: |
         python -m pip install --upgrade pip
-        python -m pip install "$GITHUB_ACTION_PATH/../.."
+        python -m pip install "$GITHUB_ACTION_PATH/../../.."
 
     - name: Publish distributions
       shell: bash
       env:
-        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
         INPUT_MODRINTH_TOKEN: ${{ inputs.modrinth-token }}
         INPUT_OVERRIDE_YAML: ${{ inputs.override-yaml }}
       run: |
@@ -55,7 +66,11 @@ runs:
 
         blockops-publish-distribution \
           --release-tag "${{ inputs.release-tag }}" \
+          --release-name "${{ inputs.release-name }}" \
+          --release-body "${{ inputs.release-body }}" \
+          --release-url "${{ inputs.release-url }}" \
           --manifest-path "${{ inputs.manifest-path }}" \
+          --artifact-directory "${{ inputs.artifact-directory }}" \
           --targets "${{ inputs.targets }}" \
           --dry-run "${{ inputs.dry-run }}" \
           --override-yaml-file "$override_file"

@@ -1,0 +1,86 @@
+name: Resolve Distribution Plan
+description: Resolve release metadata and output a publication plan plus matrix data
+
+inputs:
+  release-tag:
+    description: Release tag to publish, for example 2.0.0-RC6
+    required: true
+  release-name:
+    description: Release name from GitHub
+    required: false
+    default: ""
+  release-body:
+    description: Release body from GitHub
+    required: false
+    default: ""
+  release-url:
+    description: Release URL from GitHub
+    required: false
+    default: ""
+  manifest-path:
+    description: Path to the distribution manifest in the consumer repository
+    required: false
+    default: .github/release-distribution.yml
+  targets:
+    description: Optional comma-separated publication names to include
+    required: false
+    default: ""
+  override-yaml:
+    description: Optional YAML merge patch applied to resolved publish data
+    required: false
+    default: ""
+
+outputs:
+  plan-json:
+    description: Resolved publish plan as compact JSON
+    value: ${{ steps.resolve.outputs.plan-json }}
+  matrix-json:
+    description: Publication matrix as compact JSON array
+    value: ${{ steps.resolve.outputs.matrix-json }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install blockops publisher
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install "$GITHUB_ACTION_PATH/../../.."
+
+    - name: Resolve plan
+      id: resolve
+      shell: bash
+      env:
+        INPUT_OVERRIDE_YAML: ${{ inputs.override-yaml }}
+      run: |
+        override_file="$(mktemp)"
+        plan_file="$(mktemp)"
+        matrix_file="$(mktemp)"
+        printf '%s' "$INPUT_OVERRIDE_YAML" > "$override_file"
+
+        blockops-resolve-distribution-plan \
+          --release-tag "${{ inputs.release-tag }}" \
+          --release-name "${{ inputs.release-name }}" \
+          --release-body "${{ inputs.release-body }}" \
+          --release-url "${{ inputs.release-url }}" \
+          --manifest-path "${{ inputs.manifest-path }}" \
+          --targets "${{ inputs.targets }}" \
+          --override-yaml-file "$override_file" \
+          --plan-file "$plan_file" \
+          --matrix-file "$matrix_file"
+
+        {
+          echo "plan-json<<EOF"
+          cat "$plan_file"
+          echo
+          echo "EOF"
+          echo "matrix-json<<EOF"
+          cat "$matrix_file"
+          echo
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"

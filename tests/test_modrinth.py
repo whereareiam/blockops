@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import responses
 
-from blockops_publish.models import PublishArtifact, PublishTarget, ReleaseMetadata
+from blockops_publish.publish.models import PublishArtifact, PublishTarget, ReleaseMetadata
 from blockops_publish.providers.modrinth import ModrinthPublishError, ModrinthPublisher
 
 
@@ -20,16 +20,13 @@ def build_release() -> ReleaseMetadata:
 
 
 def build_target(tmp_path: Path) -> PublishTarget:
-    artifact_path = tmp_path / "Socialismus-PAPER-2.0.0-RC6.jar"
-    artifact_path.write_bytes(b"jar-data")
     return PublishTarget(
         provider="modrinth",
         publication="paper-modrinth",
         artifact=PublishArtifact(
             name="paper",
             file_template="Socialismus-PAPER-{version}.jar",
-            artifact_name=artifact_path.name,
-            artifact_path=artifact_path,
+            artifact_name="Socialismus-PAPER-2.0.0-RC6.jar",
             game_versions=["1.20.6", "1.21"],
             loaders=["paper", "purpur", "folia"],
             platform="paper",
@@ -60,7 +57,9 @@ def test_publish_skips_identical_existing_version(tmp_path: Path) -> None:
         status=200,
     )
 
-    result = publisher.publish(release, target, dry_run=False)
+    artifact_path = tmp_path / target.artifact.artifact_name
+    artifact_path.write_bytes(b"jar-data")
+    result = publisher.publish(release, target, artifact_path=artifact_path, dry_run=False)
 
     assert "Skipped existing" in result
 
@@ -87,8 +86,10 @@ def test_publish_fails_for_conflicting_existing_version(tmp_path: Path) -> None:
         status=200,
     )
 
+    artifact_path = tmp_path / target.artifact.artifact_name
+    artifact_path.write_bytes(b"jar-data")
     with pytest.raises(ModrinthPublishError):
-        publisher.publish(release, target, dry_run=False)
+        publisher.publish(release, target, artifact_path=artifact_path, dry_run=False)
 
 
 @responses.activate
@@ -108,7 +109,9 @@ def test_publish_creates_new_version(tmp_path: Path) -> None:
         status=200,
     )
 
-    result = publisher.publish(release, target, dry_run=False)
+    artifact_path = tmp_path / target.artifact.artifact_name
+    artifact_path.write_bytes(b"jar-data")
+    result = publisher.publish(release, target, artifact_path=artifact_path, dry_run=False)
 
     assert "Published Modrinth publication" in result
 
@@ -125,7 +128,9 @@ def test_publish_dry_run_skips_api_mutation(tmp_path: Path) -> None:
         status=200,
     )
 
-    result = publisher.publish(release, target, dry_run=True)
+    artifact_path = tmp_path / target.artifact.artifact_name
+    artifact_path.write_bytes(b"jar-data")
+    result = publisher.publish(release, target, artifact_path=artifact_path, dry_run=True)
 
     assert "Dry run validated" in result
     assert len(responses.calls) == 1
@@ -141,6 +146,8 @@ def test_publish_fails_when_project_id_missing(tmp_path: Path) -> None:
         artifact=target.artifact,
         provider_config={},
     )
+    artifact_path = tmp_path / target.artifact.artifact_name
+    artifact_path.write_bytes(b"jar-data")
 
     with pytest.raises(ModrinthPublishError, match="project_id"):
-        publisher.publish(release, broken_target, dry_run=True)
+        publisher.publish(release, broken_target, artifact_path=artifact_path, dry_run=True)

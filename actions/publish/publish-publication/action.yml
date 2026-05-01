@@ -1,0 +1,50 @@
+name: Publish Publication
+description: Publish one resolved distribution publication
+
+inputs:
+  modrinth-token:
+    description: Modrinth token used for publishing versions
+    required: false
+    default: ""
+  plan-json:
+    description: Resolved distribution plan as compact JSON
+    required: true
+  artifact-directory:
+    description: Directory containing build artifacts to publish
+    required: true
+  publication:
+    description: Publication name to publish from the plan
+    required: true
+  dry-run:
+    description: When true, resolve and validate but do not publish
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install blockops publisher
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install "$GITHUB_ACTION_PATH/../../.."
+
+    - name: Publish publication
+      shell: bash
+      env:
+        INPUT_MODRINTH_TOKEN: ${{ inputs.modrinth-token }}
+        INPUT_PLAN_JSON: ${{ inputs.plan-json }}
+      run: |
+        plan_file="$(mktemp)"
+        printf '%s' "$INPUT_PLAN_JSON" > "$plan_file"
+
+        blockops-publish-publication \
+          --plan-file "$plan_file" \
+          --artifact-directory "${{ inputs.artifact-directory }}" \
+          --publication "${{ inputs.publication }}" \
+          --dry-run "${{ inputs.dry-run }}"

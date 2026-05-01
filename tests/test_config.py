@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from blockops_publish.config import ConfigError, deep_merge, load_override_file, validate_manifest
+from blockops_publish.shared.config import ConfigError, deep_merge, load_override_file, validate_manifest
 
 
 def test_deep_merge_overrides_nested_values() -> None:

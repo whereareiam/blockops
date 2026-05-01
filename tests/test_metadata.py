@@ -1,4 +1,4 @@
-from blockops_publish.metadata import classify_version, derive_release_title, trim_release_body
+from blockops_publish.shared.metadata import classify_version, derive_release_title, trim_release_body
 
 
 def test_derive_release_title_with_en_dash() -> None:

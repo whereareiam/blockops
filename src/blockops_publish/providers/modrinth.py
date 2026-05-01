@@ -6,7 +6,7 @@ from typing import Any
 
 import requests
 
-from blockops_publish.models import PublishTarget, ReleaseMetadata
+from blockops_publish.publish.models import PublishTarget, ReleaseMetadata
 
 
 class ModrinthPublishError(RuntimeError):
@@ -22,7 +22,7 @@ class ModrinthPublisher:
         if token:
             self.session.headers["Authorization"] = token
 
-    def publish(self, release: ReleaseMetadata, target: PublishTarget, dry_run: bool) -> str:
+    def publish(self, release: ReleaseMetadata, target: PublishTarget, artifact_path: Path, dry_run: bool) -> str:
         project_id = self._get_project_id(target)
         payload = self._build_payload(release, target)
         existing_versions = self._get_project_versions(project_id)
@@ -40,7 +40,7 @@ class ModrinthPublisher:
         if not self.token:
             raise ModrinthPublishError("Modrinth token is required for non-dry-run publishing")
 
-        self._create_version(payload, target.artifact.artifact_path)
+        self._create_version(payload, artifact_path)
         return f"Published Modrinth publication {target.publication}"
 
     def _get_project_versions(self, project_id: str) -> list[dict[str, Any]]:

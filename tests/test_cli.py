@@ -1,17 +1,15 @@
-from pathlib import Path
-
 import pytest
 
-from blockops_publish.cli import build_publish_plan, parse_targets_expression
-from blockops_publish.config import ConfigError
-from blockops_publish.github_api import GitHubAsset, GitHubRelease
-
-
-class FakeGitHubClient:
-    def download_asset(self, asset: GitHubAsset, destination: Path) -> Path:
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(b"jar-data")
-        return destination
+from blockops_publish.publish.models import ReleaseMetadata
+from blockops_publish.publish.planner import (
+    build_release_metadata,
+    build_publication_matrix,
+    deserialize_publish_plan,
+    parse_targets_expression,
+    resolve_publish_plan,
+    serialize_publish_plan,
+)
+from blockops_publish.shared.config import ConfigError
 
 
 def build_manifest() -> dict:
@@ -45,24 +43,15 @@ def build_manifest() -> dict:
     }
 
 
-def build_release() -> GitHubRelease:
-    return GitHubRelease(
+def build_release() -> ReleaseMetadata:
+    return ReleaseMetadata(
+        repository="whereareiam/Identica",
         tag_name="v2.0.0",
-        name="2.0.0",
-        body="Release body",
+        version_number="2.0.0",
+        title="2.0.0",
+        changelog="Release body",
+        version_type="release",
         html_url="https://github.com/whereareiam/Identica/releases/tag/v2.0.0",
-        assets=[
-            GitHubAsset(
-                name="Identica-VELOCITY-2.0.0.jar",
-                api_url="https://api.github.com/assets/1",
-                browser_download_url="https://example.com/1",
-            ),
-            GitHubAsset(
-                name="Identica-Cracked-2.0.0.jar",
-                api_url="https://api.github.com/assets/2",
-                browser_download_url="https://example.com/2",
-            ),
-        ],
     )
 
 
@@ -83,15 +72,11 @@ def test_parse_targets_expression_rejects_unknown_publication() -> None:
         parse_targets_expression("missing", build_manifest())
 
 
-def test_build_publish_plan_resolves_artifact_and_publication(tmp_path: Path) -> None:
-    plan = build_publish_plan(
-        repository="whereareiam/Identica",
+def test_resolve_publish_plan_resolves_artifact_and_publication() -> None:
+    plan = resolve_publish_plan(
         release=build_release(),
         manifest=build_manifest(),
         targets_expression="identica-modrinth",
-        override={},
-        asset_dir=tmp_path,
-        github=FakeGitHubClient(),
     )
 
     assert plan.release.version_number == "2.0.0"
@@ -105,3 +90,43 @@ def test_build_publish_plan_resolves_artifact_and_publication(tmp_path: Path) ->
     assert target.artifact.platform == "velocity"
     assert target.artifact.artifact_name == "Identica-VELOCITY-2.0.0.jar"
     assert target.artifact.game_versions == ["1.20.6", "1.21"]
+
+
+def test_serialize_publish_plan_round_trips() -> None:
+    plan = resolve_publish_plan(
+        release=build_release(),
+        manifest=build_manifest(),
+        targets_expression="identica-modrinth",
+    )
+
+    restored = deserialize_publish_plan(serialize_publish_plan(plan))
+
+    assert restored == plan
+
+
+def test_build_publication_matrix_includes_publication_metadata() -> None:
+    plan = resolve_publish_plan(
+        release=build_release(),
+        manifest=build_manifest(),
+        targets_expression="",
+    )
+
+    assert build_publication_matrix(plan) == [
+        {"publication": "identica-modrinth", "provider": "modrinth", "artifact": "velocity"},
+        {"publication": "cracked-modrinth", "provider": "modrinth", "artifact": "cracked-provider"},
+    ]
+
+
+def test_build_release_metadata_derives_release_fields() -> None:
+    release = build_release_metadata(
+        repository="whereareiam/Identica",
+        tag_name="v2.0.0-RC1",
+        release_name="2.0.0-RC1",
+        release_body="# Update v2.0.0-RC1 - Breaking Changes\n\nBody",
+        html_url="https://github.com/whereareiam/Identica/releases/tag/v2.0.0-RC1",
+    )
+
+    assert release.version_number == "2.0.0-RC1"
+    assert release.title == "Breaking Changes"
+    assert release.changelog == "Body"
+    assert release.version_type == "beta"

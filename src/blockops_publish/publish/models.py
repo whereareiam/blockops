@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 
@@ -21,7 +20,6 @@ class PublishArtifact:
     name: str
     file_template: str
     artifact_name: str
-    artifact_path: Path
     game_versions: list[str]
     loaders: list[str]
     platform: str | None
