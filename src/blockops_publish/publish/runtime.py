@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from blockops_publish.publish.models import PublishTarget
+from blockops_publish.providers.hangar import HangarPublisher
 from blockops_publish.providers.modrinth import ModrinthPublisher
 from blockops_publish.shared.config import ConfigError
 
@@ -15,6 +16,7 @@ def publish_single_target(
     artifact_path: Path,
     dry_run: bool,
     modrinth_token: str,
+    hangar_token: str,
     provider_clients: dict[str, Any] | None = None,
 ) -> str:
     provider_clients = provider_clients or {}
@@ -22,6 +24,10 @@ def publish_single_target(
     if target.provider == "modrinth":
         provider_clients.setdefault("modrinth", ModrinthPublisher(modrinth_token))
         return provider_clients["modrinth"].publish(release, target, artifact_path=artifact_path, dry_run=dry_run)
+
+    if target.provider == "hangar":
+        provider_clients.setdefault("hangar", HangarPublisher(hangar_token))
+        return provider_clients["hangar"].publish(release, target, artifact_path=artifact_path, dry_run=dry_run)
 
     raise ConfigError(f"Unsupported provider: {target.provider}")
 

@@ -11,6 +11,9 @@ class ConfigError(ValueError):
     """Raised when the distribution configuration is invalid."""
 
 
+SUPPORTED_PROVIDERS = {"modrinth", "hangar"}
+
+
 def load_yaml_file(path: Path) -> dict[str, Any]:
     if not path.is_file():
         raise ConfigError(f"Manifest file does not exist: {path}")
@@ -91,6 +94,11 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
         if not isinstance(provider, str) or not provider:
             raise ConfigError(f"Publication {publication_name} must define provider")
 
+        if provider not in SUPPORTED_PROVIDERS:
+            raise ConfigError(
+                f"Publication {publication_name} must define a supported provider: {sorted(SUPPORTED_PROVIDERS)}"
+            )
+
         if not isinstance(artifact_name, str) or not artifact_name:
             raise ConfigError(f"Publication {publication_name} must define artifact")
 
@@ -98,3 +106,28 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
             raise ConfigError(
                 f"Publication {publication_name} references unknown artifact {artifact_name}"
             )
+
+        if provider == "hangar":
+            project_slug = publication.get("project_slug")
+            if not isinstance(project_slug, str) or not project_slug:
+                raise ConfigError(f"Publication {publication_name} must define project_slug")
+
+            channel = publication.get("channel")
+            if channel is not None and (not isinstance(channel, str) or not channel):
+                raise ConfigError(f"Publication {publication_name} channel must be a non-empty string when defined")
+
+            platform = publication.get("platform", artifacts[artifact_name].get("platform"))
+            if not isinstance(platform, str) or not platform:
+                raise ConfigError(
+                    f"Publication {publication_name} must define platform or artifact platform"
+                )
+
+            platform_versions = publication.get("platform_versions", artifacts[artifact_name].get("game_versions"))
+            if not isinstance(platform_versions, list) or not platform_versions:
+                raise ConfigError(
+                    f"Publication {publication_name} must define platform_versions as a non-empty list"
+                )
+            if not all(isinstance(item, str) and item for item in platform_versions):
+                raise ConfigError(
+                    f"Publication {publication_name} platform_versions must be a list of strings"
+                )

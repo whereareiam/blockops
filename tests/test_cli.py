@@ -1,5 +1,7 @@
 import pytest
 
+from blockops_publish.publish.cli_publish_distribution import parse_args as parse_distribution_args
+from blockops_publish.publish.cli_publish_publication import parse_args as parse_publication_args
 from blockops_publish.publish.models import ReleaseMetadata
 from blockops_publish.publish.planner import (
     build_release_metadata,
@@ -130,3 +132,35 @@ def test_build_release_metadata_derives_release_fields() -> None:
     assert release.title == "Breaking Changes"
     assert release.changelog == "Body"
     assert release.version_type == "beta"
+
+
+def test_publish_publication_cli_accepts_hangar_token(tmp_path) -> None:
+    args = parse_publication_args(
+        [
+            "--plan-file",
+            str(tmp_path / "plan.json"),
+            "--artifact-directory",
+            str(tmp_path),
+            "--publication",
+            "identica-hangar",
+            "--hangar-token",
+            "hangar-secret",
+        ]
+    )
+
+    assert args.hangar_token == "hangar-secret"
+
+
+def test_publish_distribution_cli_accepts_hangar_token(tmp_path) -> None:
+    args = parse_distribution_args(
+        [
+            "--release-tag",
+            "v2.0.0",
+            "--artifact-directory",
+            str(tmp_path),
+            "--hangar-token",
+            "hangar-secret",
+        ]
+    )
+
+    assert args.hangar_token == "hangar-secret"

@@ -25,6 +25,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", ""))
     parser.add_argument("--workspace", default=os.environ.get("GITHUB_WORKSPACE", os.getcwd()))
     parser.add_argument("--modrinth-token", default=os.environ.get("INPUT_MODRINTH_TOKEN", ""))
+    parser.add_argument("--hangar-token", default=os.environ.get("INPUT_HANGAR_TOKEN", ""))
     return parser.parse_args(argv)
 
 
@@ -82,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
                 artifact_path=artifact_path,
                 dry_run=dry_run,
                 modrinth_token=args.modrinth_token,
+                hangar_token=args.hangar_token,
                 provider_clients=provider_clients,
             )
             summary_lines.append(f"- Result: {message}")

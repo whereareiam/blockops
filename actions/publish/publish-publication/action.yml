@@ -6,6 +6,10 @@ inputs:
     description: Modrinth token used for publishing versions
     required: false
     default: ""
+  hangar-token:
+    description: Hangar token used for publishing versions
+    required: false
+    default: ""
   plan-json:
     description: Resolved distribution plan as compact JSON
     required: true
@@ -38,6 +42,7 @@ runs:
       shell: bash
       env:
         INPUT_MODRINTH_TOKEN: ${{ inputs.modrinth-token }}
+        INPUT_HANGAR_TOKEN: ${{ inputs.hangar-token }}
         INPUT_PLAN_JSON: ${{ inputs.plan-json }}
       run: |
         plan_file="$(mktemp)"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -16,6 +17,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--publication", required=True)
     parser.add_argument("--dry-run", default="false")
     parser.add_argument("--modrinth-token", default=os.environ.get("INPUT_MODRINTH_TOKEN", ""))
+    parser.add_argument("--hangar-token", default=os.environ.get("INPUT_HANGAR_TOKEN", ""))
     return parser.parse_args(argv)
 
 
@@ -31,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
             artifact_path=artifact_path,
             dry_run=parse_bool(args.dry_run),
             modrinth_token=args.modrinth_token,
+            hangar_token=args.hangar_token,
         )
 
         write_step_summary(

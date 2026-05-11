@@ -6,6 +6,10 @@ inputs:
     description: Modrinth token used for publishing versions
     required: false
     default: ""
+  hangar-token:
+    description: Hangar token used for publishing versions
+    required: false
+    default: ""
   release-tag:
     description: Release tag to publish, for example 2.0.0-RC6
     required: true
@@ -59,6 +63,7 @@ runs:
       shell: bash
       env:
         INPUT_MODRINTH_TOKEN: ${{ inputs.modrinth-token }}
+        INPUT_HANGAR_TOKEN: ${{ inputs.hangar-token }}
         INPUT_OVERRIDE_YAML: ${{ inputs.override-yaml }}
       run: |
         override_file="$(mktemp)"

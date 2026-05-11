@@ -45,6 +45,95 @@ def test_validate_manifest_requires_expected_shape() -> None:
     validate_manifest(manifest)
 
 
+def test_validate_manifest_accepts_hangar_publication() -> None:
+    manifest = {
+        "artifacts": {
+            "velocity": {
+                "file": "Identica-VELOCITY-{version}.jar",
+                "platform": "velocity",
+                "game_versions": ["1.20.6"],
+                "loaders": ["velocity"],
+            }
+        },
+        "publications": {
+            "identica-hangar": {
+                "provider": "hangar",
+                "artifact": "velocity",
+                "project_slug": "identica",
+            }
+        },
+    }
+
+    validate_manifest(manifest)
+
+
+def test_validate_manifest_rejects_unknown_provider() -> None:
+    manifest = {
+        "artifacts": {
+            "paper": {
+                "file": "Socialismus-PAPER-{version}.jar",
+                "game_versions": ["1.20.6"],
+                "loaders": ["paper"],
+            }
+        },
+        "publications": {
+            "paper-unknown": {
+                "provider": "unknown",
+                "artifact": "paper",
+            }
+        },
+    }
+
+    with pytest.raises(ConfigError, match="supported provider"):
+        validate_manifest(manifest)
+
+
+def test_validate_manifest_rejects_hangar_without_project_slug() -> None:
+    manifest = {
+        "artifacts": {
+            "velocity": {
+                "file": "Identica-VELOCITY-{version}.jar",
+                "platform": "velocity",
+                "game_versions": ["1.20.6"],
+                "loaders": ["velocity"],
+            }
+        },
+        "publications": {
+            "identica-hangar": {
+                "provider": "hangar",
+                "artifact": "velocity",
+            }
+        },
+    }
+
+    with pytest.raises(ConfigError, match="project_slug"):
+        validate_manifest(manifest)
+
+
+def test_validate_manifest_rejects_blank_hangar_channel() -> None:
+    manifest = {
+        "artifacts": {
+            "velocity": {
+                "file": "Identica-VELOCITY-{version}.jar",
+                "platform": "velocity",
+                "game_versions": ["1.20.6"],
+                "loaders": ["velocity"],
+            }
+        },
+        "publications": {
+            "identica-hangar": {
+                "provider": "hangar",
+                "artifact": "velocity",
+                "project_slug": "identica",
+                "channel": "",
+            }
+        },
+    }
+
+    with pytest.raises(ConfigError, match="channel"):
+        validate_manifest(manifest)
+
+
 def test_validate_manifest_requires_known_publication_artifact() -> None:
     manifest = {
         "artifacts": {
