@@ -155,7 +155,7 @@ def test_publish_defaults_to_latest_platform_version_only(tmp_path: Path) -> Non
     artifact_path.write_bytes(b"jar-data")
     publisher.publish(release, target, artifact_path=artifact_path, dry_run=False)
 
-    assert b'"platformDependencies": {"velocity": ["3.5.0"]}' in responses.calls[1].request.body
+    assert b'"platformDependencies": {"velocity": ["3.5"]}' in responses.calls[1].request.body
 
 
 def test_publish_fails_when_project_slug_missing(tmp_path: Path) -> None:

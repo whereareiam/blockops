@@ -115,7 +115,7 @@ class HangarPublisher:
 
         raw_versions = target.provider_config.get("platform_versions")
         if raw_versions is None:
-            raw_versions = self._resolve_default_platform_versions(target)
+            raw_versions = self._resolve_default_platform_versions(target, platform)
         if not isinstance(raw_versions, list) or not raw_versions or not all(isinstance(item, str) and item for item in raw_versions):
             raise HangarPublishError(
                 f"Hangar publication {target.publication} must define platform_versions as a non-empty list of strings"
@@ -144,7 +144,7 @@ class HangarPublisher:
             return "Release"
         return "Beta"
 
-    def _resolve_default_platform_versions(self, target: PublishTarget) -> list[str]:
+    def _resolve_default_platform_versions(self, target: PublishTarget, platform: str) -> list[str]:
         platform_versions = target.artifact.platform_versions
         if not platform_versions:
             raise HangarPublishError(
@@ -155,7 +155,17 @@ class HangarPublisher:
             raise HangarPublishError(
                 f"Hangar publication {target.publication} latest artifact version must be a non-empty string"
             )
-        return [latest]
+        return [self._map_platform_version_for_hangar(platform, latest)]
+
+    def _map_platform_version_for_hangar(self, platform: str, version: str) -> str:
+        if platform != "velocity":
+            return version
+
+        token = version.split("-", 1)[0]
+        parts = token.split(".")
+        if len(parts) >= 2 and all(part.isdigit() for part in parts[:2]):
+            return f"{parts[0]}.{parts[1]}"
+        return version
 
     def _build_dependencies(self, target: PublishTarget) -> list[dict[str, Any]]:
         raw_dependencies = target.provider_config.get("dependencies", [])
