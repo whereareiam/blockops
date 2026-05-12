@@ -131,6 +131,30 @@ def test_publish_dry_run_skips_api_mutation(tmp_path: Path) -> None:
     assert "Dry run validated" in result
 
 
+@responses.activate
+def test_publish_defaults_to_latest_platform_version_only(tmp_path: Path) -> None:
+    target = build_target()
+    release = build_release()
+    publisher = HangarPublisher("token")
+
+    responses.post(
+        "https://hangar.papermc.io/api/v1/authenticate",
+        json={"token": "bearer-token"},
+        status=200,
+    )
+    responses.post(
+        "https://hangar.papermc.io/api/v1/projects/identica/upload",
+        json={"result": "ok"},
+        status=200,
+    )
+
+    artifact_path = tmp_path / target.artifact.artifact_name
+    artifact_path.write_bytes(b"jar-data")
+    publisher.publish(release, target, artifact_path=artifact_path, dry_run=False)
+
+    assert b'"platformDependencies": {"velocity": ["1.21"]}' in responses.calls[1].request.body
+
+
 def test_publish_fails_when_project_slug_missing(tmp_path: Path) -> None:
     target = build_target()
     release = build_release()

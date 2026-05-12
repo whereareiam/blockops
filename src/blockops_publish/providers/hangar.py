@@ -113,7 +113,9 @@ class HangarPublisher:
                 f"Hangar publication {target.publication} must define platform or artifact platform"
             )
 
-        raw_versions = target.provider_config.get("platform_versions", target.artifact.game_versions)
+        raw_versions = target.provider_config.get("platform_versions")
+        if raw_versions is None:
+            raw_versions = self._resolve_default_platform_versions(target)
         if not isinstance(raw_versions, list) or not raw_versions or not all(isinstance(item, str) and item for item in raw_versions):
             raise HangarPublishError(
                 f"Hangar publication {target.publication} must define platform_versions as a non-empty list of strings"
@@ -141,6 +143,19 @@ class HangarPublisher:
         if release.version_type == "release":
             return "Release"
         return "Beta"
+
+    def _resolve_default_platform_versions(self, target: PublishTarget) -> list[str]:
+        game_versions = target.artifact.game_versions
+        if not game_versions:
+            raise HangarPublishError(
+                f"Hangar publication {target.publication} must define platform_versions or artifact game_versions"
+            )
+        latest = game_versions[-1]
+        if not isinstance(latest, str) or not latest:
+            raise HangarPublishError(
+                f"Hangar publication {target.publication} latest artifact version must be a non-empty string"
+            )
+        return [latest]
 
     def _build_dependencies(self, target: PublishTarget) -> list[dict[str, Any]]:
         raw_dependencies = target.provider_config.get("dependencies", [])
