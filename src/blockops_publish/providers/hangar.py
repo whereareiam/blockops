@@ -60,14 +60,24 @@ class HangarPublisher:
         with artifact_path.open("rb") as artifact_handle:
             response = self.session.post(
                 f"{self.api_base}/projects/{project_slug}/upload",
-                data={"versionUpload": json.dumps(payload)},
-                files={
-                    "files": (
-                        artifact_path.name,
-                        artifact_handle,
-                        "application/java-archive",
-                    )
-                },
+                files=[
+                    (
+                        "versionUpload",
+                        (
+                            None,
+                            json.dumps(payload),
+                            "application/json",
+                        ),
+                    ),
+                    (
+                        "files",
+                        (
+                            artifact_path.name,
+                            artifact_handle,
+                            "application/java-archive",
+                        ),
+                    ),
+                ],
                 timeout=120,
             )
 
