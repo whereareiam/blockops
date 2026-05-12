@@ -131,3 +131,7 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
                 raise ConfigError(
                     f"Publication {publication_name} platform_versions must be a list of strings"
                 )
+
+        dependencies = publication.get("dependencies")
+        if dependencies is not None and not isinstance(dependencies, list):
+            raise ConfigError(f"Publication {publication_name} dependencies must be a list when defined")

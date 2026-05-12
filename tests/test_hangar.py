@@ -37,6 +37,25 @@ def build_target() -> PublishTarget:
     )
 
 
+def build_target_with_dependencies() -> PublishTarget:
+    target = build_target()
+    return PublishTarget(
+        provider=target.provider,
+        publication=target.publication,
+        artifact=target.artifact,
+        provider_config={
+            "project_slug": "identica",
+            "dependencies": [
+                {
+                    "kind": "hangar",
+                    "name": "Identica",
+                    "required": True,
+                }
+            ],
+        },
+    )
+
+
 @responses.activate
 def test_publish_creates_new_hangar_version(tmp_path: Path) -> None:
     target = build_target()
@@ -183,3 +202,27 @@ def test_publish_reports_upload_failure(tmp_path: Path) -> None:
 
     with pytest.raises(HangarPublishError, match="Failed to upload Hangar version"):
         publisher.publish(release, target, artifact_path=artifact_path, dry_run=False)
+
+
+@responses.activate
+def test_publish_includes_configured_hangar_dependencies(tmp_path: Path) -> None:
+    target = build_target_with_dependencies()
+    release = build_release()
+    publisher = HangarPublisher("token")
+
+    responses.post(
+        "https://hangar.papermc.io/api/v1/authenticate",
+        json={"token": "bearer-token"},
+        status=200,
+    )
+    responses.post(
+        "https://hangar.papermc.io/api/v1/projects/identica/upload",
+        json={"result": "ok"},
+        status=200,
+    )
+
+    artifact_path = tmp_path / target.artifact.artifact_name
+    artifact_path.write_bytes(b"jar-data")
+    publisher.publish(release, target, artifact_path=artifact_path, dry_run=False)
+
+    assert b'"pluginDependencies": {"velocity": [{"name": "Identica", "required": true}]}' in responses.calls[1].request.body

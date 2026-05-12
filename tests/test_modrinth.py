@@ -35,6 +35,24 @@ def build_target(tmp_path: Path) -> PublishTarget:
     )
 
 
+def build_target_with_dependencies() -> PublishTarget:
+    target = build_target(Path("."))
+    return PublishTarget(
+        provider=target.provider,
+        publication=target.publication,
+        artifact=target.artifact,
+        provider_config={
+            "project_id": "aeIrNw73",
+            "dependencies": [
+                {
+                    "project_id": "D26hHMI2",
+                    "dependency_type": "required",
+                }
+            ],
+        },
+    )
+
+
 @responses.activate
 def test_publish_skips_identical_existing_version(tmp_path: Path) -> None:
     target = build_target(tmp_path)
@@ -151,3 +169,28 @@ def test_publish_fails_when_project_id_missing(tmp_path: Path) -> None:
 
     with pytest.raises(ModrinthPublishError, match="project_id"):
         publisher.publish(release, broken_target, artifact_path=artifact_path, dry_run=True)
+
+
+@responses.activate
+def test_publish_includes_configured_dependencies(tmp_path: Path) -> None:
+    target = build_target_with_dependencies()
+    release = build_release()
+    publisher = ModrinthPublisher("token")
+
+    responses.get(
+        "https://api.modrinth.com/v3/project/aeIrNw73/version",
+        json=[],
+        status=200,
+    )
+    responses.post(
+        "https://api.modrinth.com/v3/version",
+        json={"id": "new-version"},
+        status=200,
+    )
+
+    artifact_path = tmp_path / target.artifact.artifact_name
+    artifact_path.write_bytes(b"jar-data")
+    publisher.publish(release, target, artifact_path=artifact_path, dry_run=False)
+
+    assert '"project_id": "D26hHMI2"' in responses.calls[1].request.body.decode()
+    assert '"dependency_type": "required"' in responses.calls[1].request.body.decode()

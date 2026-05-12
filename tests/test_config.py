@@ -134,6 +134,32 @@ def test_validate_manifest_rejects_blank_hangar_channel() -> None:
         validate_manifest(manifest)
 
 
+def test_validate_manifest_rejects_non_list_dependencies() -> None:
+    manifest = {
+        "artifacts": {
+            "velocity": {
+                "file": "Identica-VELOCITY-{version}.jar",
+                "platform": "velocity",
+                "game_versions": ["1.20.6"],
+                "loaders": ["velocity"],
+            }
+        },
+        "publications": {
+            "identica-modrinth": {
+                "provider": "modrinth",
+                "artifact": "velocity",
+                "project_id": "D26hHMI2",
+                "dependencies": {
+                    "project_id": "abc",
+                },
+            }
+        },
+    }
+
+    with pytest.raises(ConfigError, match="dependencies must be a list"):
+        validate_manifest(manifest)
+
+
 def test_validate_manifest_requires_known_publication_artifact() -> None:
     manifest = {
         "artifacts": {

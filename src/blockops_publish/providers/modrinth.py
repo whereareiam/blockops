@@ -107,7 +107,7 @@ class ModrinthPublisher:
             "name": release.title,
             "version_number": release.version_number,
             "changelog": release.changelog,
-            "dependencies": [],
+            "dependencies": self._build_dependencies(target),
             "game_versions": target.artifact.game_versions,
             "version_type": release.version_type,
             "loaders": target.artifact.loaders,
@@ -132,3 +132,44 @@ class ModrinthPublisher:
                 f"Failed to create Modrinth version {payload['version_number']} for {artifact_path.name}: "
                 f"{response.status_code} {response.text}"
             )
+
+    def _build_dependencies(self, target: PublishTarget) -> list[dict[str, Any]]:
+        raw_dependencies = target.provider_config.get("dependencies", [])
+        if not isinstance(raw_dependencies, list):
+            raise ModrinthPublishError(
+                f"Modrinth publication {target.publication} dependencies must be a list when defined"
+            )
+
+        dependencies: list[dict[str, Any]] = []
+        for dependency in raw_dependencies:
+            if not isinstance(dependency, dict):
+                raise ModrinthPublishError(
+                    f"Modrinth publication {target.publication} dependencies must be mappings"
+                )
+
+            dependency_type = dependency.get("dependency_type")
+            if dependency_type not in {"required", "optional", "incompatible", "embedded"}:
+                raise ModrinthPublishError(
+                    f"Modrinth publication {target.publication} dependency_type must be one of "
+                    f"required, optional, incompatible, embedded"
+                )
+
+            project_id = dependency.get("project_id")
+            version_id = dependency.get("version_id")
+            file_name = dependency.get("file_name")
+            if not any(isinstance(value, str) and value for value in (project_id, version_id, file_name)):
+                raise ModrinthPublishError(
+                    f"Modrinth publication {target.publication} dependencies must define project_id, version_id, "
+                    f"or file_name"
+                )
+
+            payload = {"dependency_type": dependency_type}
+            if isinstance(project_id, str) and project_id:
+                payload["project_id"] = project_id
+            if isinstance(version_id, str) and version_id:
+                payload["version_id"] = version_id
+            if isinstance(file_name, str) and file_name:
+                payload["file_name"] = file_name
+            dependencies.append(payload)
+
+        return dependencies

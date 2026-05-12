@@ -116,6 +116,9 @@ class HangarPublisher:
             "platformDependencies": {
                 platform: raw_versions,
             },
+            "pluginDependencies": {
+                platform: self._build_dependencies(target),
+            },
             "files": [
                 {
                     "platforms": [platform],
@@ -128,3 +131,49 @@ class HangarPublisher:
         if release.version_type == "release":
             return "Release"
         return "Beta"
+
+    def _build_dependencies(self, target: PublishTarget) -> list[dict[str, Any]]:
+        raw_dependencies = target.provider_config.get("dependencies", [])
+        if not isinstance(raw_dependencies, list):
+            raise HangarPublishError(
+                f"Hangar publication {target.publication} dependencies must be a list when defined"
+            )
+
+        dependencies: list[dict[str, Any]] = []
+        for dependency in raw_dependencies:
+            if not isinstance(dependency, dict):
+                raise HangarPublishError(
+                    f"Hangar publication {target.publication} dependencies must be mappings"
+                )
+
+            kind = dependency.get("kind")
+            name = dependency.get("name")
+            required = dependency.get("required", True)
+            if kind not in {"hangar", "url"}:
+                raise HangarPublishError(
+                    f"Hangar publication {target.publication} dependency kind must be hangar or url"
+                )
+            if not isinstance(name, str) or not name:
+                raise HangarPublishError(
+                    f"Hangar publication {target.publication} dependencies must define name"
+                )
+            if not isinstance(required, bool):
+                raise HangarPublishError(
+                    f"Hangar publication {target.publication} dependency required must be a boolean"
+                )
+
+            payload = {
+                "name": name,
+                "required": required,
+            }
+            if kind == "url":
+                url = dependency.get("url")
+                if not isinstance(url, str) or not url:
+                    raise HangarPublishError(
+                        f"Hangar publication {target.publication} url dependencies must define url"
+                    )
+                payload["externalUrl"] = url
+
+            dependencies.append(payload)
+
+        return dependencies
