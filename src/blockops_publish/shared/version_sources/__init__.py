@@ -1,1 +1,0 @@
-"""Version source implementations."""

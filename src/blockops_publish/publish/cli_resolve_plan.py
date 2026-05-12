@@ -13,7 +13,7 @@ from blockops_publish.publish.planner import (
     serialize_publish_plan,
     write_text,
 )
-from blockops_publish.shared.config import ConfigError, load_override_file, load_yaml_file, validate_manifest
+from blockops_publish.manifest.config import ConfigError, load_override_file, load_yaml_file, validate_manifest
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -50,6 +50,7 @@ def main(argv: list[str] | None = None) -> int:
             release_name=args.release_name,
             release_body=args.release_body,
             html_url=args.release_url,
+            release_config=manifest.get("release"),
         )
         plan = resolve_publish_plan(
             release=release,

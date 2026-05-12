@@ -4,11 +4,15 @@ import argparse
 import os
 import sys
 from pathlib import Path
-from typing import Any
-
 from blockops_publish.publish.planner import build_release_metadata, resolve_publish_plan
-from blockops_publish.publish.runtime import parse_bool, publish_single_target, resolve_artifact_path, write_step_summary
-from blockops_publish.shared.config import ConfigError, load_override_file, load_yaml_file, validate_manifest
+from blockops_publish.publish.runtime import (
+    parse_bool,
+    parse_provider_credentials,
+    publish_single_target,
+    resolve_artifact_path,
+    write_step_summary,
+)
+from blockops_publish.manifest.config import ConfigError, load_override_file, load_yaml_file, validate_manifest
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -24,8 +28,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--override-yaml-file", type=Path)
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", ""))
     parser.add_argument("--workspace", default=os.environ.get("GITHUB_WORKSPACE", os.getcwd()))
-    parser.add_argument("--modrinth-token", default=os.environ.get("INPUT_MODRINTH_TOKEN", ""))
-    parser.add_argument("--hangar-token", default=os.environ.get("INPUT_HANGAR_TOKEN", ""))
+    parser.add_argument("--provider-credentials", default=os.environ.get("INPUT_PROVIDER_CREDENTIALS", ""))
     return parser.parse_args(argv)
 
 
@@ -47,6 +50,7 @@ def main(argv: list[str] | None = None) -> int:
             release_name=args.release_name,
             release_body=args.release_body,
             html_url=args.release_url,
+            release_config=manifest.get("release"),
         )
         plan = resolve_publish_plan(
             release=release,
@@ -55,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
             override=load_override_file(args.override_yaml_file),
         )
         dry_run = parse_bool(args.dry_run)
+        provider_credentials = parse_provider_credentials(args.provider_credentials)
 
         summary_lines = [
             f"# Distribution Publish {'Dry Run' if dry_run else 'Run'}",
@@ -68,12 +73,11 @@ def main(argv: list[str] | None = None) -> int:
             "## Targets",
         ]
 
-        provider_clients: dict[str, Any] = {}
         artifact_directory = args.artifact_directory.resolve()
 
         for target in plan.targets:
             summary_lines.append(
-                f"- `{target.publication}` ({target.provider}) -> `{target.artifact.artifact_name}`"
+                f"- `{target.publication}` ({target.provider_id}) -> `{target.artifact.artifact_name}`"
             )
 
             artifact_path = resolve_artifact_path(artifact_directory, target)
@@ -82,9 +86,7 @@ def main(argv: list[str] | None = None) -> int:
                 target=target,
                 artifact_path=artifact_path,
                 dry_run=dry_run,
-                modrinth_token=args.modrinth_token,
-                hangar_token=args.hangar_token,
-                provider_clients=provider_clients,
+                provider_credentials=provider_credentials,
             )
             summary_lines.append(f"- Result: {message}")
             print(message)

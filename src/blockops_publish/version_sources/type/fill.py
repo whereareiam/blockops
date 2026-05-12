@@ -4,7 +4,7 @@ from typing import Any
 
 import requests
 
-from blockops_publish.shared.config import ConfigError
+from blockops_publish.manifest.config import ConfigError
 
 
 class PaperMcFillProjectVersionSource:

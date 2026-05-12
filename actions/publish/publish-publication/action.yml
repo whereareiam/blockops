@@ -2,12 +2,8 @@ name: Publish Publication
 description: Publish one resolved distribution publication
 
 inputs:
-  modrinth-token:
-    description: Modrinth token used for publishing versions
-    required: false
-    default: ""
-  hangar-token:
-    description: Hangar token used for publishing versions
+  provider-credentials:
+    description: YAML mapping of provider ids to credentials
     required: false
     default: ""
   plan-json:
@@ -41,8 +37,7 @@ runs:
     - name: Publish publication
       shell: bash
       env:
-        INPUT_MODRINTH_TOKEN: ${{ inputs.modrinth-token }}
-        INPUT_HANGAR_TOKEN: ${{ inputs.hangar-token }}
+        INPUT_PROVIDER_CREDENTIALS: ${{ inputs.provider-credentials }}
         INPUT_PLAN_JSON: ${{ inputs.plan-json }}
       run: |
         plan_file="$(mktemp)"
@@ -52,4 +47,5 @@ runs:
           --plan-file "$plan_file" \
           --artifact-directory "${{ inputs.artifact-directory }}" \
           --publication "${{ inputs.publication }}" \
-          --dry-run "${{ inputs.dry-run }}"
+          --dry-run "${{ inputs.dry-run }}" \
+          --provider-credentials "$INPUT_PROVIDER_CREDENTIALS"

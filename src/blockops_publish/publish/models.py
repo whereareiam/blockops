@@ -16,27 +16,63 @@ class ReleaseMetadata:
 
 
 @dataclass(frozen=True)
-class PublishArtifact:
-    name: str
-    file_template: str
-    artifact_name: str
+class ArtifactPlatformSpec:
+    key: str
+    loaders: list[str]
     game_versions: list[str]
     platform_versions: list[str]
     game_versions_source: dict[str, Any] | None
     platform_versions_source: dict[str, Any] | None
-    loaders: list[str]
-    platform: str | None
 
 
 @dataclass(frozen=True)
-class PublishTarget:
-    provider: str
+class ArtifactSpec:
+    name: str
+    file_template: str
+    platforms: dict[str, ArtifactPlatformSpec]
+
+
+@dataclass(frozen=True)
+class PublicationSpec:
+    provider_id: str
     publication: str
-    artifact: PublishArtifact
-    provider_config: dict[str, Any]
+    artifact_name: str
+    platforms: list[str] | None
+    provider: dict[str, Any]
 
 
 @dataclass(frozen=True)
-class PublishPlan:
+class DistributionManifest:
+    artifacts: dict[str, ArtifactSpec]
+    publications: dict[str, PublicationSpec]
+
+
+@dataclass
+class ResolvedArtifactPlatform:
+    key: str
+    loaders: list[str]
+    game_versions: list[str]
+    platform_versions: list[str]
+
+
+@dataclass
+class ResolvedArtifact:
+    name: str
+    file_template: str
+    artifact_name: str
+    platforms: dict[str, ResolvedArtifactPlatform]
+
+
+@dataclass
+class ResolvedPublishTarget:
+    provider_id: str
+    publication: str
+    artifact: ResolvedArtifact
+    selected_platforms: list[str]
+    provider: dict[str, Any]
+
+
+@dataclass
+class ResolvedPublishPlan:
     release: ReleaseMetadata
-    targets: list[PublishTarget]
+    targets: list[ResolvedPublishTarget]

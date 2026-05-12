@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from blockops_publish.shared.config import ConfigError
-from blockops_publish.shared.version_source import VersionSource
-from blockops_publish.shared.version_sources.type.fill import PaperMcFillProjectVersionSource
+from blockops_publish.manifest.config import ConfigError
+from blockops_publish.version_sources.source import VersionSource
+from blockops_publish.version_sources.type.fill import PaperMcFillProjectVersionSource
 
 
 class VersionSourceResolver:

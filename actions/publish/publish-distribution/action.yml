@@ -2,12 +2,8 @@ name: Publish Distribution
 description: Resolve release metadata and publish external distributions such as Modrinth
 
 inputs:
-  modrinth-token:
-    description: Modrinth token used for publishing versions
-    required: false
-    default: ""
-  hangar-token:
-    description: Hangar token used for publishing versions
+  provider-credentials:
+    description: YAML mapping of provider ids to credentials
     required: false
     default: ""
   release-tag:
@@ -62,8 +58,7 @@ runs:
     - name: Publish distributions
       shell: bash
       env:
-        INPUT_MODRINTH_TOKEN: ${{ inputs.modrinth-token }}
-        INPUT_HANGAR_TOKEN: ${{ inputs.hangar-token }}
+        INPUT_PROVIDER_CREDENTIALS: ${{ inputs.provider-credentials }}
         INPUT_OVERRIDE_YAML: ${{ inputs.override-yaml }}
       run: |
         override_file="$(mktemp)"
@@ -78,4 +73,5 @@ runs:
           --artifact-directory "${{ inputs.artifact-directory }}" \
           --targets "${{ inputs.targets }}" \
           --dry-run "${{ inputs.dry-run }}" \
+          --provider-credentials "$INPUT_PROVIDER_CREDENTIALS" \
           --override-yaml-file "$override_file"

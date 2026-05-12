@@ -1,0 +1,1 @@
+"""Hangar adapter tests."""
