@@ -67,17 +67,18 @@ class ModrinthPublisher:
             files = version.get("files") or []
             filenames = sorted(file["filename"] for file in files if "filename" in file)
             same_file = expected_file in filenames
+            same_number = version.get("version_number") == payload["version_number"]
             same_loaders = sorted(version.get("loaders") or []) == expected_loaders
 
-            if not (same_file or same_loaders):
+            if not (same_file or same_number):
                 continue
 
             exact_match = (
-                version.get("version_number") == payload["version_number"]
+                same_number
                 and version.get("name") == payload["name"]
                 and (version.get("changelog") or "") == payload["changelog"]
                 and version.get("version_type") == payload["version_type"]
-                and sorted(version.get("loaders") or []) == expected_loaders
+                and same_loaders
                 and sorted(version.get("game_versions") or []) == expected_games
                 and same_file
             )

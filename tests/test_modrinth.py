@@ -111,6 +111,40 @@ def test_publish_fails_for_conflicting_existing_version(tmp_path: Path) -> None:
 
 
 @responses.activate
+def test_publish_allows_new_version_when_only_loaders_match(tmp_path: Path) -> None:
+    target = build_target(tmp_path)
+    release = build_release()
+    publisher = ModrinthPublisher("token")
+
+    responses.get(
+        "https://api.modrinth.com/v3/project/aeIrNw73/version",
+        json=[
+            {
+                "version_number": "1.0.0",
+                "name": "Old Release",
+                "changelog": "Body",
+                "version_type": "release",
+                "loaders": ["folia", "paper", "purpur"],
+                "game_versions": ["1.20.6", "1.21"],
+                "files": [{"filename": "Socialismus-PAPER-1.0.0.jar"}],
+            }
+        ],
+        status=200,
+    )
+    responses.post(
+        "https://api.modrinth.com/v3/version",
+        json={"id": "new-version"},
+        status=200,
+    )
+
+    artifact_path = tmp_path / target.artifact.artifact_name
+    artifact_path.write_bytes(b"jar-data")
+    result = publisher.publish(release, target, artifact_path=artifact_path, dry_run=False)
+
+    assert "Published Modrinth publication" in result
+
+
+@responses.activate
 def test_publish_creates_new_version(tmp_path: Path) -> None:
     target = build_target(tmp_path)
     release = build_release()
