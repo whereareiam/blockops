@@ -145,12 +145,12 @@ class HangarPublisher:
         return "Beta"
 
     def _resolve_default_platform_versions(self, target: PublishTarget) -> list[str]:
-        game_versions = target.artifact.game_versions
-        if not game_versions:
+        platform_versions = target.artifact.platform_versions
+        if not platform_versions:
             raise HangarPublishError(
-                f"Hangar publication {target.publication} must define platform_versions or artifact game_versions"
+                f"Hangar publication {target.publication} must define platform_versions or artifact platform_versions"
             )
-        latest = game_versions[-1]
+        latest = platform_versions[-1]
         if not isinstance(latest, str) or not latest:
             raise HangarPublishError(
                 f"Hangar publication {target.publication} latest artifact version must be a non-empty string"

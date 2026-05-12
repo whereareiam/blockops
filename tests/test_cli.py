@@ -1,4 +1,5 @@
 import pytest
+import responses
 
 from blockops_publish.publish.cli_publish_distribution import parse_args as parse_distribution_args
 from blockops_publish.publish.cli_publish_publication import parse_args as parse_publication_args
@@ -20,13 +21,11 @@ def build_manifest() -> dict:
             "velocity": {
                 "file": "Identica-VELOCITY-{version}.jar",
                 "platform": "velocity",
-                "game_versions": ["1.20.6", "1.21"],
                 "loaders": ["velocity"],
             },
             "cracked-provider": {
                 "file": "Identica-Cracked-{version}.jar",
                 "platform": "velocity",
-                "game_versions": ["1.20.6", "1.21"],
                 "loaders": ["velocity"],
             },
         },
@@ -74,7 +73,18 @@ def test_parse_targets_expression_rejects_unknown_publication() -> None:
         parse_targets_expression("missing", build_manifest())
 
 
+@responses.activate
 def test_resolve_publish_plan_resolves_artifact_and_publication() -> None:
+    responses.get(
+        "https://fill.papermc.io/v3/projects/paper",
+        json={"versions": {"26.1": ["26.1.2", "26.1.1"]}},
+        status=200,
+    )
+    responses.get(
+        "https://fill.papermc.io/v3/projects/velocity",
+        json={"versions": {"3.0.0": ["3.5.0-SNAPSHOT", "3.4.0"]}},
+        status=200,
+    )
     plan = resolve_publish_plan(
         release=build_release(),
         manifest=build_manifest(),
@@ -91,10 +101,22 @@ def test_resolve_publish_plan_resolves_artifact_and_publication() -> None:
     assert target.artifact.name == "velocity"
     assert target.artifact.platform == "velocity"
     assert target.artifact.artifact_name == "Identica-VELOCITY-2.0.0.jar"
-    assert target.artifact.game_versions == ["1.20.6", "1.21"]
+    assert target.artifact.game_versions == ["26.1.2"]
+    assert target.artifact.platform_versions == ["3.5.0-SNAPSHOT"]
 
 
+@responses.activate
 def test_serialize_publish_plan_round_trips() -> None:
+    responses.get(
+        "https://fill.papermc.io/v3/projects/paper",
+        json={"versions": {"26.1": ["26.1.2", "26.1.1"]}},
+        status=200,
+    )
+    responses.get(
+        "https://fill.papermc.io/v3/projects/velocity",
+        json={"versions": {"3.0.0": ["3.5.0-SNAPSHOT", "3.4.0"]}},
+        status=200,
+    )
     plan = resolve_publish_plan(
         release=build_release(),
         manifest=build_manifest(),
@@ -106,7 +128,18 @@ def test_serialize_publish_plan_round_trips() -> None:
     assert restored == plan
 
 
+@responses.activate
 def test_build_publication_matrix_includes_publication_metadata() -> None:
+    responses.get(
+        "https://fill.papermc.io/v3/projects/paper",
+        json={"versions": {"26.1": ["26.1.2", "26.1.1"]}},
+        status=200,
+    )
+    responses.get(
+        "https://fill.papermc.io/v3/projects/velocity",
+        json={"versions": {"3.0.0": ["3.5.0-SNAPSHOT", "3.4.0"]}},
+        status=200,
+    )
     plan = resolve_publish_plan(
         release=build_release(),
         manifest=build_manifest(),

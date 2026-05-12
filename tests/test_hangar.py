@@ -28,6 +28,9 @@ def build_target() -> PublishTarget:
             file_template="Identica-VELOCITY-{version}.jar",
             artifact_name="Identica-VELOCITY-2.0.0-RC6.jar",
             game_versions=["1.20.6", "1.21"],
+            platform_versions=["3.4.0", "3.5.0"],
+            game_versions_source=None,
+            platform_versions_source=None,
             loaders=["velocity"],
             platform="velocity",
         ),
@@ -152,7 +155,7 @@ def test_publish_defaults_to_latest_platform_version_only(tmp_path: Path) -> Non
     artifact_path.write_bytes(b"jar-data")
     publisher.publish(release, target, artifact_path=artifact_path, dry_run=False)
 
-    assert b'"platformDependencies": {"velocity": ["1.21"]}' in responses.calls[1].request.body
+    assert b'"platformDependencies": {"velocity": ["3.5.0"]}' in responses.calls[1].request.body
 
 
 def test_publish_fails_when_project_slug_missing(tmp_path: Path) -> None:

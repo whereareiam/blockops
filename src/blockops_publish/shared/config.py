@@ -69,17 +69,29 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
 
         file_template = artifact.get("file")
         game_versions = artifact.get("game_versions")
+        platform_versions = artifact.get("platform_versions", [])
+        game_versions_source = artifact.get("game_versions_source")
+        platform_versions_source = artifact.get("platform_versions_source")
         loaders = artifact.get("loaders", [])
         platform = artifact.get("platform")
 
         if not isinstance(file_template, str) or not file_template:
             raise ConfigError(f"Artifact {artifact_name} must define file")
 
+        if game_versions is None:
+            game_versions = []
         if not isinstance(game_versions, list) or not all(isinstance(item, str) for item in game_versions):
-            raise ConfigError(f"Artifact {artifact_name} must define game_versions as a list of strings")
+            raise ConfigError(f"Artifact {artifact_name} game_versions must be a list of strings")
 
         if not isinstance(loaders, list) or not all(isinstance(item, str) for item in loaders):
             raise ConfigError(f"Artifact {artifact_name} loaders must be a list of strings")
+
+        if not isinstance(platform_versions, list) or not all(isinstance(item, str) for item in platform_versions):
+            raise ConfigError(f"Artifact {artifact_name} platform_versions must be a list of strings")
+        if game_versions_source is not None and not isinstance(game_versions_source, dict):
+            raise ConfigError(f"Artifact {artifact_name} game_versions_source must be a mapping when defined")
+        if platform_versions_source is not None and not isinstance(platform_versions_source, dict):
+            raise ConfigError(f"Artifact {artifact_name} platform_versions_source must be a mapping when defined")
 
         if platform is not None and not isinstance(platform, str):
             raise ConfigError(f"Artifact {artifact_name} platform must be a string when defined")
@@ -122,7 +134,12 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
                     f"Publication {publication_name} must define platform or artifact platform"
                 )
 
-            platform_versions = publication.get("platform_versions", artifacts[artifact_name].get("game_versions"))
+            platform_versions = publication.get("platform_versions", artifacts[artifact_name].get("platform_versions"))
+            if not platform_versions and (
+                isinstance(artifacts[artifact_name].get("platform_versions_source"), dict)
+                or artifacts[artifact_name].get("platform_versions_source") is None
+            ):
+                platform_versions = ["resolved-from-source"]
             if not isinstance(platform_versions, list) or not platform_versions:
                 raise ConfigError(
                     f"Publication {publication_name} must define platform_versions as a non-empty list"

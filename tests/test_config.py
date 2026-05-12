@@ -29,7 +29,6 @@ def test_validate_manifest_requires_expected_shape() -> None:
         "artifacts": {
             "paper": {
                 "file": "Socialismus-PAPER-{version}.jar",
-                "game_versions": ["1.20.6"],
                 "loaders": ["paper"],
             }
         },
@@ -51,7 +50,6 @@ def test_validate_manifest_accepts_hangar_publication() -> None:
             "velocity": {
                 "file": "Identica-VELOCITY-{version}.jar",
                 "platform": "velocity",
-                "game_versions": ["1.20.6"],
                 "loaders": ["velocity"],
             }
         },
@@ -72,7 +70,6 @@ def test_validate_manifest_rejects_unknown_provider() -> None:
         "artifacts": {
             "paper": {
                 "file": "Socialismus-PAPER-{version}.jar",
-                "game_versions": ["1.20.6"],
                 "loaders": ["paper"],
             }
         },
@@ -94,7 +91,6 @@ def test_validate_manifest_rejects_hangar_without_project_slug() -> None:
             "velocity": {
                 "file": "Identica-VELOCITY-{version}.jar",
                 "platform": "velocity",
-                "game_versions": ["1.20.6"],
                 "loaders": ["velocity"],
             }
         },
@@ -116,7 +112,6 @@ def test_validate_manifest_rejects_blank_hangar_channel() -> None:
             "velocity": {
                 "file": "Identica-VELOCITY-{version}.jar",
                 "platform": "velocity",
-                "game_versions": ["1.20.6"],
                 "loaders": ["velocity"],
             }
         },
@@ -140,7 +135,6 @@ def test_validate_manifest_rejects_non_list_dependencies() -> None:
             "velocity": {
                 "file": "Identica-VELOCITY-{version}.jar",
                 "platform": "velocity",
-                "game_versions": ["1.20.6"],
                 "loaders": ["velocity"],
             }
         },
@@ -165,7 +159,6 @@ def test_validate_manifest_requires_known_publication_artifact() -> None:
         "artifacts": {
             "paper": {
                 "file": "Socialismus-PAPER-{version}.jar",
-                "game_versions": ["1.20.6"],
             }
         },
         "publications": {

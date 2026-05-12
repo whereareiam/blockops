@@ -8,6 +8,7 @@ from typing import Any
 from blockops_publish.publish.models import PublishArtifact, PublishPlan, PublishTarget, ReleaseMetadata
 from blockops_publish.shared.config import ConfigError, deep_merge
 from blockops_publish.shared.metadata import classify_version, derive_release_title, derive_version_number, trim_release_body
+from blockops_publish.shared.version_sources.resolver import VersionSourceResolver
 
 
 def resolve_publish_plan(
@@ -16,6 +17,7 @@ def resolve_publish_plan(
     targets_expression: str,
     override: dict[str, Any] | None = None,
 ) -> PublishPlan:
+    version_source_resolver = VersionSourceResolver()
     release_data = {"release": asdict(release)}
     resolved = deep_merge(manifest, release_data)
     if override:
@@ -40,7 +42,18 @@ def resolve_publish_plan(
             name=artifact_key,
             file_template=artifact_config["file"],
             artifact_name=artifact_name,
-            game_versions=artifact_config["game_versions"],
+            game_versions=resolve_artifact_versions(
+                artifact_config,
+                "game_versions",
+                version_source_resolver,
+            ),
+            platform_versions=resolve_artifact_versions(
+                artifact_config,
+                "platform_versions",
+                version_source_resolver,
+            ),
+            game_versions_source=artifact_config.get("game_versions_source"),
+            platform_versions_source=artifact_config.get("platform_versions_source"),
             loaders=artifact_config.get("loaders", []),
             platform=artifact_config.get("platform"),
         )
@@ -83,6 +96,25 @@ def parse_targets_expression(targets_expression: str, manifest: dict[str, Any]) 
 
 def resolve_artifact_name(template: str, tag_name: str, version_number: str) -> str:
     return template.format(tag=tag_name, version=version_number)
+
+
+def resolve_artifact_versions(
+    artifact_config: dict[str, Any],
+    field_name: str,
+    resolver: VersionSourceResolver,
+) -> list[str]:
+    configured = artifact_config.get(field_name)
+    if isinstance(configured, list) and configured:
+        return configured
+
+    source = artifact_config.get(f"{field_name}_source")
+    if isinstance(source, dict):
+        return resolver.resolve_latest(source, field_name)
+
+    if isinstance(configured, list):
+        return configured
+
+    return resolver.resolve_latest_default(field_name)
 
 
 def find_publication(plan: PublishPlan, publication: str) -> PublishTarget:

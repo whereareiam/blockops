@@ -21,6 +21,9 @@ class PublishArtifact:
     file_template: str
     artifact_name: str
     game_versions: list[str]
+    platform_versions: list[str]
+    game_versions_source: dict[str, Any] | None
+    platform_versions_source: dict[str, Any] | None
     loaders: list[str]
     platform: str | None
 
