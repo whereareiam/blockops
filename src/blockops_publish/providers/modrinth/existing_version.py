@@ -18,9 +18,6 @@ class ModrinthExistingVersionChecker:
             same_number = version.get("version_number") == release.version_number
             same_loaders = sorted(version.get("loaders") or []) == expected_loaders
 
-            if not (same_file or same_number):
-                continue
-
             exact_match = (
                 same_number
                 and version.get("name") == release.title
@@ -33,7 +30,11 @@ class ModrinthExistingVersionChecker:
             if exact_match:
                 return "skip"
 
-            return "conflict"
+            if same_file:
+                return "conflict"
+
+            if same_number and same_loaders:
+                return "conflict"
 
         return "publish"
 
