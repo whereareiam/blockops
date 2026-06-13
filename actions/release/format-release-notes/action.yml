@@ -1,0 +1,40 @@
+name: Format Release Notes
+description: Convert GitHub release notes into alternate release-note formats such as Spigot posts
+
+inputs:
+  format:
+    description: Target release-note format, for example bbcode
+    required: true
+  release-body:
+    description: Markdown release body to convert
+    required: true
+  output-file:
+    description: Output file path for the rendered notes
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+
+    - name: Install blockops publisher
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install "$GITHUB_ACTION_PATH/../../.."
+
+    - name: Format release notes
+      shell: bash
+      env:
+        INPUT_RELEASE_BODY: ${{ inputs.release-body }}
+      run: |
+        input_file="$(mktemp)"
+        printf '%s' "$INPUT_RELEASE_BODY" > "$input_file"
+
+        blockops-format-release-notes \
+          --format "${{ inputs.format }}" \
+          --input-file "$input_file" \
+          --output-file "${{ inputs.output-file }}"

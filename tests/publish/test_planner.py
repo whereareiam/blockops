@@ -1,7 +1,7 @@
 import responses
 
-from blockops_publish.publish.models import ReleaseMetadata
-from blockops_publish.publish.planner import (
+from publish.models import ReleaseMetadata
+from publish.planner import (
     build_publication_matrix,
     deserialize_publish_plan,
     parse_targets_expression,

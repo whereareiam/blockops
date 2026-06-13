@@ -1,4 +1,4 @@
-from blockops_publish.publish.planner import build_release_metadata
+from publish.planner import build_release_metadata
 
 
 def test_build_release_metadata_uses_release_name_when_body_has_no_heading() -> None:

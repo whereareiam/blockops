@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "blockops-publish"
-version = "0.1.0"
+version = "0.2.0"
 description = "Shared release distribution tooling for BlockOps repositories"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -21,9 +21,10 @@ test = [
 ]
 
 [project.scripts]
-blockops-publish-distribution = "blockops_publish.publish.cli_publish_distribution:main"
-blockops-resolve-distribution-plan = "blockops_publish.publish.cli_resolve_plan:main"
-blockops-publish-publication = "blockops_publish.publish.cli_publish_publication:main"
+blockops-publish-distribution = "publish.cli_publish_distribution:main"
+blockops-resolve-distribution-plan = "publish.cli_resolve_plan:main"
+blockops-publish-publication = "publish.cli_publish_publication:main"
+blockops-format-release-notes = "release.cli_format_release_notes:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

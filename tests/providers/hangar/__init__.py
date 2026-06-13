@@ -1,1 +1,0 @@
-"""Hangar provider tests."""

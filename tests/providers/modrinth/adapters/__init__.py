@@ -1,1 +1,0 @@
-"""Modrinth adapter tests."""
