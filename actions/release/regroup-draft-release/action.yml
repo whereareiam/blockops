@@ -1,21 +1,62 @@
 name: Regroup Draft Release
-description: Regroup a markdown draft release body by PR title prefix
+description: Regroup a markdown draft release body by PR title prefix and update the GitHub draft release
 
 inputs:
+  release-id:
+    description: GitHub release id to update
+    required: true
   release-body:
     description: Markdown release body to regroup
     required: true
-  output-file:
-    description: Output file path for the regrouped draft body
-    required: true
+  grouping:
+    description: Optional regrouping strategy
+    required: false
+    default: title-prefix
+
+outputs:
+  body:
+    description: Regrouped draft release body
+    value: ${{ steps.prepare.outputs.body }}
 
 runs:
   using: composite
   steps:
     - name: Regroup release notes
+      if: ${{ inputs.grouping != '' }}
       uses: whereareiam/blockops/actions/release/format-release-notes@v3
       with:
         format: markdown
-        grouping: title-prefix
+        grouping: ${{ inputs.grouping }}
         release-body: ${{ inputs.release-body }}
-        output-file: ${{ inputs.output-file }}
+        output-file: ${{ runner.temp }}/release-body-regrouped.md
+
+    - name: Prepare draft release body
+      id: prepare
+      shell: bash
+      env:
+        INPUT_RELEASE_BODY: ${{ inputs.release-body }}
+      run: |
+        if [ "${{ inputs.grouping }}" = "" ]; then
+          printf '%s' "$INPUT_RELEASE_BODY" > "${{ runner.temp }}/release-body-regrouped.md"
+        fi
+
+        {
+          echo "body<<EOF"
+          cat "${{ runner.temp }}/release-body-regrouped.md"
+          echo
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Update draft release
+      uses: actions/github-script@v8
+      env:
+        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
+      with:
+        github-token: ${{ env.GITHUB_TOKEN }}
+        script: |
+          await github.rest.repos.updateRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            release_id: Number("${{ inputs.release-id }}"),
+            body: ${{ toJson(steps.prepare.outputs.body) }},
+          });
