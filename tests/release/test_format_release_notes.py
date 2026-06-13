@@ -37,6 +37,48 @@ If you need help, join us on [URL='https://discord.arcadeya.com']Discord[/URL].
 """
 
 
+def test_format_release_notes_groups_markdown_by_prefix() -> None:
+    release_body = """# Update 2.3.0 - [Short subtitle]
+
+[1-2 sentence summary of the release.]
+
+# Changelog
+
+* API: Introduce scenario events in [#89](https://github.com/whereareiam/Identica/pull/89)
+* Configuration: Improve config file structure in [#100](https://github.com/whereareiam/Identica/pull/100)
+* API: Optimize event listener dispatch in [#101](https://github.com/whereareiam/Identica/pull/101)
+
+# Support
+
+Support text
+"""
+
+    assert format_release_notes(release_body, "markdown", "title-prefix") == """# Update 2.3.0 - [Short subtitle]
+
+[1-2 sentence summary of the release.]
+
+# Changelog
+
+## API
+
+* Introduce scenario events in [#89](https://github.com/whereareiam/Identica/pull/89)
+* Optimize event listener dispatch in [#101](https://github.com/whereareiam/Identica/pull/101)
+
+## Configuration
+
+* Improve config file structure in [#100](https://github.com/whereareiam/Identica/pull/100)
+
+# Support
+
+Support text
+"""
+
+
 def test_format_release_notes_rejects_unknown_format() -> None:
     with pytest.raises(ValueError, match="Unsupported release note format: unknown"):
         format_release_notes("# Title", "unknown")
+
+
+def test_format_release_notes_rejects_unknown_grouping() -> None:
+    with pytest.raises(ValueError, match="Unsupported release note grouping: unknown"):
+        format_release_notes("# Title", "markdown", "unknown")

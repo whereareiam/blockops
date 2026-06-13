@@ -5,6 +5,10 @@ inputs:
   format:
     description: Target release-note format, for example bbcode
     required: true
+  grouping:
+    description: Optional release-note grouping strategy, for example title-prefix
+    required: false
+    default: ""
   release-body:
     description: Markdown release body to convert
     required: true
@@ -36,5 +40,6 @@ runs:
 
         blockops-format-release-notes \
           --format "${{ inputs.format }}" \
+          --grouping "${{ inputs.grouping }}" \
           --input-file "$input_file" \
           --output-file "${{ inputs.output-file }}"
