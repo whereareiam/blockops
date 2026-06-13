@@ -1,0 +1,21 @@
+name: Regroup Draft Release
+description: Regroup a markdown draft release body by PR title prefix
+
+inputs:
+  release-body:
+    description: Markdown release body to regroup
+    required: true
+  output-file:
+    description: Output file path for the regrouped draft body
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Regroup release notes
+      uses: whereareiam/blockops/actions/release/format-release-notes@v3
+      with:
+        format: markdown
+        grouping: title-prefix
+        release-body: ${{ inputs.release-body }}
+        output-file: ${{ inputs.output-file }}
