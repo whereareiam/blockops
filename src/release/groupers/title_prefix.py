@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from collections import OrderedDict
 
 
 BULLET_PATTERN = re.compile(r"^\* (?P<entry>.+)$")
@@ -37,8 +36,30 @@ def group_by_title_prefix(body: str) -> str:
 
 
 def _group_block(lines: list[str]) -> list[str]:
-    prefix_groups: OrderedDict[str, list[str]] = OrderedDict()
-    other_changes: list[str] = []
+    prefixed_entries: list[tuple[str, int, str]] = []
+    other_entries: list[tuple[int, str]] = []
+
+    for index, line in enumerate(lines):
+        match = BULLET_PATTERN.match(line.strip())
+        if not match:
+            continue
+
+        entry = match.group("entry")
+        prefix_match = PREFIX_PATTERN.match(entry)
+        if not prefix_match:
+            other_entries.append((index, entry))
+            continue
+
+        prefix = prefix_match.group("prefix").strip()
+        prefixed_entries.append((prefix.lower(), index, entry))
+
+    if len(prefixed_entries) <= 1:
+        return [line for line in lines if line.strip()]
+
+    sorted_prefixed = [entry for _, _, entry in sorted(prefixed_entries, key=lambda item: (item[0], item[1]))]
+    rewritten: list[str] = []
+    prefixed_index = 0
+    other_index = 0
 
     for line in lines:
         match = BULLET_PATTERN.match(line.strip())
@@ -47,37 +68,14 @@ def _group_block(lines: list[str]) -> list[str]:
 
         entry = match.group("entry")
         prefix_match = PREFIX_PATTERN.match(entry)
-        if not prefix_match:
-            other_changes.append(entry)
+        if prefix_match:
+            rewritten.append(f"* {sorted_prefixed[prefixed_index]}")
+            prefixed_index += 1
             continue
 
-        prefix = prefix_match.group("prefix").strip()
-        rest = prefix_match.group("rest").strip()
-        prefix_groups.setdefault(prefix, []).append(rest)
+        rewritten.append(f"* {other_entries[other_index][1]}")
+        other_index += 1
 
-    if len(prefix_groups) <= 1 and not other_changes:
-        return [line for line in lines if line.strip()]
-
-    rewritten: list[str] = []
-
-    for prefix, entries in prefix_groups.items():
-        rewritten.append(f"## {prefix}")
-        rewritten.append("")
-        for entry in entries:
-            rewritten.append(f"* {entry}")
-        rewritten.append("")
-
-    if other_changes:
-        rewritten.append("## Other changes")
-        rewritten.append("")
-        for entry in other_changes:
-            rewritten.append(f"* {entry}")
-        rewritten.append("")
-
-    while rewritten and rewritten[-1] == "":
-        rewritten.pop()
-
-    rewritten.append("")
     return rewritten
 
 

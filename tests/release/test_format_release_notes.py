@@ -59,14 +59,9 @@ Support text
 
 # Changelog
 
-## API
-
-* Introduce scenario events in [#89](https://github.com/whereareiam/Identica/pull/89)
-* Optimize event listener dispatch in [#101](https://github.com/whereareiam/Identica/pull/101)
-
-## Configuration
-
-* Improve config file structure in [#100](https://github.com/whereareiam/Identica/pull/100)
+* API: Introduce scenario events in [#89](https://github.com/whereareiam/Identica/pull/89)
+* API: Optimize event listener dispatch in [#101](https://github.com/whereareiam/Identica/pull/101)
+* Configuration: Improve config file structure in [#100](https://github.com/whereareiam/Identica/pull/100)
 
 # Support
 
