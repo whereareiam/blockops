@@ -1,0 +1,71 @@
+name: Regroup draft release
+description: Regroup a draft release body by pull request title prefix and update the draft on GitHub
+
+inputs:
+  release-id:
+    description: Id of the GitHub release to update
+    required: true
+  release-body:
+    description: Markdown release body to regroup
+    required: true
+  grouping:
+    description: Grouping strategy; empty leaves the body as it is
+    required: false
+    default: title-prefix
+  token:
+    description: Token that can update the release
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  body:
+    description: Regrouped draft release body
+    value: ${{ steps.regroup.outputs.body }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+
+    - name: Install blockops
+      shell: bash
+      run: |
+        python -m pip install --quiet --upgrade pip
+        python -m pip install --quiet "$GITHUB_ACTION_PATH/../../../.."
+
+    - name: Regroup and update the draft
+      id: regroup
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        RELEASE_ID: ${{ inputs.release-id }}
+        RELEASE_BODY: ${{ inputs.release-body }}
+        GROUPING: ${{ inputs.grouping }}
+      run: |
+        set -euo pipefail
+        [[ "$RELEASE_ID" =~ ^[0-9]+$ ]] || { echo "release-id must be a number" >&2; exit 1; }
+        input_file="$(mktemp)"
+        output_file="$(mktemp)"
+        printf '%s' "$RELEASE_BODY" > "$input_file"
+        if [ -n "$GROUPING" ]; then
+          blockops-format-release-notes \
+            --format markdown \
+            --grouping "$GROUPING" \
+            --input-file "$input_file" \
+            --output-file "$output_file"
+        else
+          cp "$input_file" "$output_file"
+        fi
+
+        gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --silent -F body=@"$output_file"
+
+        delimiter="blockops-$(openssl rand -hex 16)"
+        {
+          echo "body<<$delimiter"
+          cat "$output_file"
+          echo
+          echo "$delimiter"
+        } >> "$GITHUB_OUTPUT"
