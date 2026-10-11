@@ -4,6 +4,7 @@ import re
 
 
 LINK_PATTERN = re.compile(r"\[([^\]]+)]\(([^)]+)\)")
+BOLD_PATTERN = re.compile(r"\*\*(.+?)\*\*")
 
 
 def format_bbcode(markdown: str) -> str:
@@ -62,7 +63,8 @@ def format_bbcode(markdown: str) -> str:
 
 
 def _format_inline(text: str) -> str:
-    return LINK_PATTERN.sub(lambda match: f"[URL='{match.group(2)}']{match.group(1)}[/URL]", text)
+    text = LINK_PATTERN.sub(lambda match: f"[URL='{match.group(2)}']{match.group(1)}[/URL]", text)
+    return BOLD_PATTERN.sub(lambda match: f"[B]{match.group(1)}[/B]", text)
 
 
 def _heading_size(level: int) -> int:
