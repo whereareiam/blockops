@@ -1,5 +1,5 @@
 name: Regroup draft release
-description: Regroup a draft release body by pull request title prefix and update the draft on GitHub
+description: Regroup a draft release body by pull request title prefix, add the release notes file, and update the draft on GitHub
 
 inputs:
   release-id:
@@ -20,6 +20,14 @@ inputs:
     description: Heading of the closing section for developer changes
     required: false
     default: For developers
+  notes-file:
+    description: Markdown file in the checked-out repository that replaces the text between the release notes markers of the draft; front matter names its version
+    required: false
+    default: ""
+  version:
+    description: Version of the draft, compared with the version of the notes file, for example the drafter's resolved version
+    required: false
+    default: ""
   token:
     description: Token that can update the release
     required: false
@@ -54,23 +62,27 @@ runs:
         GROUPING: ${{ inputs.grouping }}
         DEVELOPER_PREFIXES: ${{ inputs.developer-prefixes }}
         DEVELOPER_TITLE: ${{ inputs.developer-title }}
+        NOTES_FILE: ${{ inputs.notes-file }}
+        VERSION: ${{ inputs.version }}
       run: |
         set -euo pipefail
         [[ "$RELEASE_ID" =~ ^[0-9]+$ ]] || { echo "release-id must be a number" >&2; exit 1; }
         input_file="$(mktemp)"
         output_file="$(mktemp)"
         printf '%s' "$RELEASE_BODY" > "$input_file"
-        if [ -n "$GROUPING" ]; then
-          blockops-format-release-notes \
-            --format markdown \
-            --grouping "$GROUPING" \
-            --developer-prefixes "$DEVELOPER_PREFIXES" \
-            --developer-title "$DEVELOPER_TITLE" \
-            --input-file "$input_file" \
-            --output-file "$output_file"
-        else
-          cp "$input_file" "$output_file"
+        if [ -n "$NOTES_FILE" ] && [ -z "$VERSION" ]; then
+          echo "version is required with notes-file" >&2
+          exit 1
         fi
+        blockops-format-release-notes \
+          --format markdown \
+          --grouping "$GROUPING" \
+          --developer-prefixes "$DEVELOPER_PREFIXES" \
+          --developer-title "$DEVELOPER_TITLE" \
+          --notes-file "$NOTES_FILE" \
+          --version "$VERSION" \
+          --input-file "$input_file" \
+          --output-file "$output_file"
 
         gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --silent -F body=@"$output_file"
 
