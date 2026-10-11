@@ -9,9 +9,17 @@ inputs:
     description: Markdown release body to regroup
     required: true
   grouping:
-    description: Grouping strategy; empty leaves the body as it is
+    description: Grouping strategy, title-prefix; empty leaves the body as it is
     required: false
     default: title-prefix
+  developer-prefixes:
+    description: Comma-separated title prefixes of changes for developers, for example API; the title-prefix grouping moves them to a closing section
+    required: false
+    default: ""
+  developer-title:
+    description: Heading of the closing section for developer changes
+    required: false
+    default: For developers
   token:
     description: Token that can update the release
     required: false
@@ -44,6 +52,8 @@ runs:
         RELEASE_ID: ${{ inputs.release-id }}
         RELEASE_BODY: ${{ inputs.release-body }}
         GROUPING: ${{ inputs.grouping }}
+        DEVELOPER_PREFIXES: ${{ inputs.developer-prefixes }}
+        DEVELOPER_TITLE: ${{ inputs.developer-title }}
       run: |
         set -euo pipefail
         [[ "$RELEASE_ID" =~ ^[0-9]+$ ]] || { echo "release-id must be a number" >&2; exit 1; }
@@ -54,6 +64,8 @@ runs:
           blockops-format-release-notes \
             --format markdown \
             --grouping "$GROUPING" \
+            --developer-prefixes "$DEVELOPER_PREFIXES" \
+            --developer-title "$DEVELOPER_TITLE" \
             --input-file "$input_file" \
             --output-file "$output_file"
         else

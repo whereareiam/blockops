@@ -8,7 +8,7 @@ and registry actions live in [whereareiam/devops](https://github.com/whereareiam
 | Task | Start here |
 | --- | --- |
 | Publish a release to Modrinth or Hangar | [Publishing distributions](#publishing-distributions) |
-| Group a release draft by pull request title prefix | [Regrouping a release draft](#regrouping-a-release-draft) |
+| Sort a release draft by title prefix and move developer changes apart | [Regrouping a release draft](#regrouping-a-release-draft) |
 | Turn release notes into a Spigot post | [Formatting release notes](#formatting-release-notes) |
 | Move a workflow from `v3` | [Moving from v3](#moving-from-v3) |
 
@@ -19,7 +19,7 @@ and registry actions live in [whereareiam/devops](https://github.com/whereareiam
 | `composite/distribution/publish` | Resolves the plan and publishes every selected publication in one job. |
 | `primitive/distribution/plan/resolve` | Resolves release metadata into a publication plan and a job matrix. |
 | `primitive/distribution/publication/publish` | Publishes one publication of a resolved plan. |
-| `primitive/release/draft/regroup` | Regroups a draft release body by title prefix and updates the draft. |
+| `primitive/release/draft/regroup` | Regroups a draft release body by pull request title prefix and updates the draft. |
 | `primitive/release/notes/format` | Converts release notes into another format, such as BBCode. |
 
 ## Publishing distributions
@@ -80,6 +80,20 @@ both actions and does everything in one job.
 ```
 
 The job needs `contents: write`. The action uses the job's token unless `token` is set.
+
+The default `title-prefix` grouping sorts the changes of each category by the `Area:` prefix of
+their pull request title, so changes of one area stand together and keep their prefix.
+`developer-prefixes` names the areas that only concern developers, for example `API`. Their changes
+leave the categories and close the changelog in a `## For developers` section; `developer-title`
+renames that section.
+
+```yaml
+- uses: whereareiam/blockops/primitive/release/draft/regroup@v4
+  with:
+    release-id: ${{ steps.drafter.outputs.id }}
+    release-body: ${{ steps.drafter.outputs.body }}
+    developer-prefixes: API
+```
 
 ## Formatting release notes
 
