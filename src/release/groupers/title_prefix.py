@@ -4,6 +4,8 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
+from release.notes_file import END_MARKER as NOTES_END_MARKER
+
 
 BULLET_PATTERN = re.compile(r"^\* (?P<entry>.+)$")
 PREFIX_PATTERN = re.compile(r"^(?P<prefix>[^:\[\]()]+):\s+(?P<rest>.+)$")
@@ -54,12 +56,17 @@ def group_by_title_prefix(
 
 
 def _changes_range(lines: list[str]) -> tuple[int | None, int]:
-    first_bullet = next((index for index, line in enumerate(lines) if BULLET_PATTERN.match(line.strip())), None)
+    # Bullets of the release notes file are not changes.
+    search_from = next((index + 1 for index, line in enumerate(lines) if line.strip() == NOTES_END_MARKER), 0)
+    first_bullet = next(
+        (index for index in range(search_from, len(lines)) if BULLET_PATTERN.match(lines[index].strip())),
+        None,
+    )
     if first_bullet is None:
         return None, len(lines)
 
     start = first_bullet
-    while start > 0 and (not lines[start - 1].strip() or CATEGORY_PATTERN.match(lines[start - 1].strip())):
+    while start > search_from and (not lines[start - 1].strip() or CATEGORY_PATTERN.match(lines[start - 1].strip())):
         start -= 1
     while start < first_bullet and not lines[start].strip():
         start += 1

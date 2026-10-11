@@ -95,6 +95,53 @@ renames that section.
     developer-prefixes: API
 ```
 
+### Keeping hand-written notes
+
+release-drafter rebuilds the draft body on every run, so text typed into the draft is lost. Keep the
+hand-written part of a release, such as its subtitle, summary, and upgrade notes, in a file of the
+repository instead, and mark where it goes in the release-drafter `template`:
+
+```yaml
+template: |
+  <!-- release-notes:start -->
+  # Update $RESOLVED_VERSION - [Short subtitle]
+
+  [1-2 sentence summary of the release.]
+  <!-- release-notes:end -->
+
+  $CHANGES
+```
+
+The file starts with front matter that names the release it belongs to; its content replaces the
+text between the markers:
+
+```markdown
+---
+version: 3.0.0
+---
+
+# Update 3.0.0 - Shared Proxies
+
+Proxies now share their sessions.
+```
+
+Check out the repository and pass the file and the resolved version:
+
+```yaml
+- uses: actions/checkout@v7
+- id: drafter
+  uses: release-drafter/release-drafter@v7
+- uses: whereareiam/blockops/primitive/release/draft/regroup@v4
+  with:
+    release-id: ${{ steps.drafter.outputs.id }}
+    release-body: ${{ steps.drafter.outputs.body }}
+    notes-file: .github/release-notes.md
+    version: ${{ steps.drafter.outputs.resolved_version }}
+```
+
+When the file names another version, for example a release that was already published, or does not
+exist, the draft keeps the text of the template. Bullets of the notes are never sorted as changes.
+
 ## Formatting release notes
 
 ```yaml
