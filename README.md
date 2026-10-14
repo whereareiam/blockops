@@ -68,6 +68,52 @@ jobs:
 `dry-run: "true"` validates without publishing. `composite/distribution/publish` takes the inputs of
 both actions and does everything in one job.
 
+### Modrinth options
+
+A Modrinth publication names its project and, where needed, how its version is created:
+
+```yaml
+publications:
+  provider-modrinth:
+    provider:
+      id: modrinth
+      project_id: 7mTkb4OS
+      release_type_map:
+        release: release
+        beta: beta
+        alpha: alpha
+      upload_loaders:
+        - java-agent
+      loader_fields:
+        environment: server_only
+      reclassify:
+        loaders: [bungeecord, velocity, waterfall]
+      dependencies:
+        - project_id: DDxUcAy9
+          dependency_type: required
+    artifact: provider
+```
+
+| Option | Purpose |
+| --- | --- |
+| `project_id` | The Modrinth project the version is created in. Required. |
+| `release_type_map` | Maps the release phase (`release`, `beta`, `alpha`) to a Modrinth version type. |
+| `dependencies` | Dependencies of the version: `dependency_type` and one of `project_id`, `version_id` or `file_name`. |
+| `upload_loaders` | Loaders to create the version with, instead of the loaders of the artifact's platforms. |
+| `loader_fields` | Loader fields sent with the new version, such as `environment`. |
+| `reclassify` | Changes the version right after it is created: `loaders` (default: the artifact's loaders), `version_type` and `status`. |
+
+Modrinth refuses a version that lacks a mandatory field of one of its loaders. Mod loaders such as
+`java-agent` or `fabric` need `environment`, one of `client_and_server`, `client_only`,
+`client_only_server_optional`, `client_or_server`, `client_or_server_prefers_both`,
+`dedicated_server_only`, `server_only`, `server_only_client_optional` or `singleplayer_only`.
+Plugin loaders such as `velocity` or `paper` have no `environment`, and Modrinth refuses it for
+them. <https://api.modrinth.com/v3/tag/loader> lists the fields of each loader under
+`supported_fields`, and `https://api.modrinth.com/v3/loader_field?loader_field=<field>` the values of
+a field. A loader field cannot replace what the publisher sets itself, such as `loaders` or
+`game_versions`. `reclassify` does not send loader fields, so a version created as `java-agent` can
+move to plugin loaders.
+
 ## Regrouping a release draft
 
 ```yaml

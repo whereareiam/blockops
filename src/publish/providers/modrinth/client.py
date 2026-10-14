@@ -37,15 +37,14 @@ class ModrinthClient:
         data = response.json()
         return data if isinstance(data, dict) else {}
 
-    def modify_version(self, version_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def modify_version(self, version_id: str, payload: dict[str, Any]) -> None:
+        # Modrinth answers a successful edit with 204 No Content.
         response = self.session.patch(
             f"{self.api_base}/version/{version_id}",
             json=payload,
             timeout=60,
         )
         self._raise_for_status(response, "modify version")
-        data = response.json()
-        return data if isinstance(data, dict) else {}
 
     def _raise_for_status(self, response: requests.Response, action: str) -> None:
         if response.status_code < 400:
