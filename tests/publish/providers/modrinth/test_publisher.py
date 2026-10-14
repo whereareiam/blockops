@@ -80,7 +80,7 @@ def test_modrinth_publisher_uses_upload_loader_override(tmp_path: Path) -> None:
 
     responses.get("https://api.modrinth.com/v3/project/D26hHMI2/version", json=[], status=200)
     responses.post("https://api.modrinth.com/v3/version", json={"id": "new-version"}, status=200)
-    responses.patch("https://api.modrinth.com/v3/version/new-version", json={"id": "new-version"}, status=200)
+    responses.patch("https://api.modrinth.com/v3/version/new-version", status=204)
 
     artifact_path = tmp_path / "Identica-2.0.0.jar"
     artifact_path.write_bytes(b"jar-data")
@@ -226,7 +226,7 @@ def test_modrinth_publisher_sends_loader_fields_on_create_only(tmp_path: Path) -
 
     responses.get("https://api.modrinth.com/v3/project/7mTkb4OS/version", json=[], status=200)
     responses.post("https://api.modrinth.com/v3/version", json={"id": "new-version"}, status=200)
-    responses.patch("https://api.modrinth.com/v3/version/new-version", json={"id": "new-version"}, status=200)
+    responses.patch("https://api.modrinth.com/v3/version/new-version", status=204)
 
     artifact_path = tmp_path / "Identica-Credential-3.0.0.jar"
     artifact_path.write_bytes(b"jar-data")
