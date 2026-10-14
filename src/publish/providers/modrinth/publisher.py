@@ -49,6 +49,7 @@ class ModrinthPublisher:
             raise ModrinthPublishError(f"Publication {target.publication} must resolve at least one loader")
 
         return {
+            **self._loader_fields(target),
             "name": release.title,
             "version_number": release.version_number,
             "changelog": release.changelog,
@@ -80,6 +81,13 @@ class ModrinthPublisher:
         if isinstance(loaders, list) and all(isinstance(item, str) and item for item in loaders):
             return loaders
         return self._loaders(target)
+
+    def _loader_fields(self, target) -> dict:
+        # Modrinth v3 reads loader fields, such as environment, as top-level keys of the version data.
+        fields = target.provider.get("loader_fields")
+        if not isinstance(fields, dict):
+            return {}
+        return dict(fields)
 
     def _build_dependencies(self, target) -> list[dict]:
         dependencies = target.provider.get("dependencies", [])
