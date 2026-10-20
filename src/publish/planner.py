@@ -14,7 +14,7 @@ from publish.models import (
     ResolvedPublishPlan,
     ResolvedPublishTarget,
 )
-from release.metadata import classify_version, derive_release_title, derive_version_number, trim_release_body
+from publish.release_metadata import classify_version, derive_release_title, derive_version_number, trim_release_body
 from publish.version_sources.resolver import VersionSourceResolver
 
 
